@@ -1,5 +1,6 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
+#[derive(Clone)]
 pub struct Block {
     pub timestamp: u64,
     pub data: Vec<u8>,

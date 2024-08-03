@@ -15,6 +15,7 @@ fn main() {
 		println!("Prev. hash: {:?}", block.prev_block_hash);
 		println!("Data: {:?}", block.data);
 		println!("Hash: {:?}", block.hash);
+		let pow = domain::ProofOfWork::new(block.clone());
 		println!("");
 	}
 }

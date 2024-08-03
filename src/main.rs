@@ -12,9 +12,9 @@ fn main() {
     bc.add_block(block2_data);
 
 	for block in bc.blocks.iter() {
-		println!("Prev. hash: {:?}", block.prev_block_hash);
-		println!("Data: {:?}", block.data);
-		println!("Hash: {:?}", block.hash);
+		println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
+		println!("Data: {}", String::from_utf8_lossy(&block.data));
+		println!("Hash: {}", hex::encode(&block.hash));
 		let pow = domain::ProofOfWork::new(block.clone());
 		println!("");
 	}

@@ -1,4 +1,5 @@
 use std::time::{SystemTime, UNIX_EPOCH};
+use crate::domain::ProofOfWork;
 
 #[derive(Clone)]
 pub struct Block {
@@ -6,7 +7,7 @@ pub struct Block {
     pub data: Vec<u8>,
     pub prev_block_hash: Vec<u8>,
     pub hash: Vec<u8>,
-    pub nonce: u32,
+    pub nonce: u64,
 }
 
 impl Block {
@@ -15,13 +16,18 @@ impl Block {
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
             .as_secs();
-
-        Block {
+        let mut block = Block {
             timestamp,
             data,
             prev_block_hash,
             hash: Vec::new(),
             nonce: 0,
-        }
+        };
+        let pow = ProofOfWork::new(block.clone());
+        let (nonce, hash) = pow.run();
+        block.hash = hash.to_vec();
+        block.nonce = nonce;
+        block
+        
     }
 }

@@ -4,9 +4,9 @@ use std::cmp::Ordering;
 use sha2::{Sha256,Digest};
 
 
-const TARGET_BITS: u16 = 24;
+const TARGET_BITS: u16 = 20;
 const UPPER_BOUND: u16 = 256;
-const MAX_NONCE: u32 = u32::MAX;
+const MAX_NONCE: u64 = u64::MAX;
 
 pub struct ProofOfWork {
     pub block: Block,
@@ -23,7 +23,7 @@ impl ProofOfWork {
         }
     }
 
-    fn prepare_data(&self, nonce: u32) -> Vec<u8> {
+    fn prepare_data(&self, nonce: u64) -> Vec<u8> {
         let mut data = Vec::new();
         data.extend_from_slice(&self.block.prev_block_hash);
         data.extend_from_slice(&self.block.data);
@@ -33,10 +33,10 @@ impl ProofOfWork {
         data
     }
     
-    pub fn run(&self) -> (u32, [u8; 32]) {
+    pub fn run(&self) -> (u64, [u8; 32]) {
         let mut hash_int = BigInt::from(0u32);
         let mut hash = [0u8; 32];
-        let mut nonce = 0u32;
+        let mut nonce = 0u64;
         let block_data = String::from_utf8_lossy(&self.block.data);
         println!("Mining the block containing \"{}\"", block_data);
 
@@ -44,7 +44,6 @@ impl ProofOfWork {
             let data = self.prepare_data(nonce);
             hash = Sha256::digest(&data).into();
             hash_int = BigInt::from_bytes_be(num_bigint::Sign::Plus, &hash);
-            
             if hash_int.cmp(&self.target) == Ordering::Less {
                 break;
             } else {

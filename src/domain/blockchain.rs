@@ -1,6 +1,6 @@
 use std::path::Path;
 use crate::domain::Block;
-use lmdb::{Cursor, RwCursor, Database,DatabaseFlags,Environment,Transaction, WriteFlags};
+use lmdb::{Cursor, Database,DatabaseFlags,Environment,Transaction, WriteFlags};
 
 const DB_FILE: &str = "blockchain.db";
 const BLOCKS_BUCKET: &str = "blocks";
@@ -33,8 +33,8 @@ impl Blockchain {
                 println!("No existing blockchain found. Creating a new one...");
                 let genesis_data = b"Genesis Block".to_vec();
                 let genesis = Block::new(genesis_data, Vec::new());
-                cursor.put(genesis.hash, &genesis.serialize(), WriteFlags::empty())?;
-                cursor.put(b"l", genesis.hash, WriteFlags::empty())?;
+                cursor.put(&genesis.hash, &genesis.serialize(), WriteFlags::empty())?;
+                cursor.put(b"l", &genesis.hash, WriteFlags::empty())?;
                 tip = genesis.hash;
             } else {
                 tip = cursor.get(Some(b"l"), None, 1)
@@ -45,18 +45,18 @@ impl Blockchain {
         }
         txn.commit()?;
 
-        Ok(Blockchain { tip, env })
+        Ok(Blockchain { tip, db: db })
     }
 
     fn add_block(&mut self, data: String) -> Result<(), lmdb::Error> {
         let mut last_hash = Vec::new();
         {
-            let txn = self.env.begin_ro_txn()?;
+            let txn = self.db.begin_ro_txn()?;
             let db = txn.open_db(Some(BLOCKS_BUCKET))?;
             last_hash = txn.get(db, b"l")?.to_vec();
         }
         let new_block = Block::new(data, last_hash);
-        let txn = self.env.begin_rw_txn()?;
+        let txn = self.db.begin_rw_txn()?;
         {
             let db = txn.open_db(Some(BLOCKS_BUCKET))?;
             txn.put(db, new_block.hash.as_slice(), &new_block.serialize(), WriteFlags::empty())?;

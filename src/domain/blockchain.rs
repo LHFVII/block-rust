@@ -1,71 +1,50 @@
 use std::path::Path;
 use crate::domain::Block;
-use lmdb::{Cursor, Database,DatabaseFlags,Environment,Transaction, WriteFlags};
+use jammdb::{DB, Data, Error};
 
-const DB_FILE: &str = "blockchain.db";
+const DB_FILE: &str = "./blockchain.db";
 const BLOCKS_BUCKET: &str = "blocks";
 
 pub struct Blockchain {
     pub tip: Vec<u8>,
-    pub db: Database
+    pub db: DB
 }
 
 pub struct BlockchainIterator{
-	pub currentHash: Vec<u8>,
-	pub db: Database
+	pub current_hash: Vec<u8>,
+	pub db: DB
 }
 
 impl Blockchain {
-    fn new() -> Result<Self, lmdb::Error> {
-        let path = Path::new(DB_FILE);
-        let env = Environment::new()
-            .set_map_size(10485760)
-            .open(path)?;
-
-        let db: Database = env.create_db(Some(BLOCKS_BUCKET), DatabaseFlags::empty())?;
-
-        let mut tip = Vec::new();
-
-        let txn = env.begin_rw_txn()?;
-        {
-            let mut cursor = txn.open_rw_cursor(db)?;
-            if let None = cursor.get(Some(b"l"), None, 1) {
-                println!("No existing blockchain found. Creating a new one...");
-                let genesis_data = b"Genesis Block".to_vec();
-                let genesis = Block::new(genesis_data, Vec::new());
-                cursor.put(&genesis.hash, &genesis.serialize(), WriteFlags::empty())?;
-                cursor.put(b"l", &genesis.hash, WriteFlags::empty())?;
-                tip = genesis.hash;
-            } else {
-                tip = cursor.get(Some(b"l"), None, 1)
-                    .unwrap()
-                    .1
-                    .to_vec();
+    pub fn new() -> Result<Self, Error> {
+        let db = DB::open("../../blockchain.db")?;
+        let tx = db.tx(true)?;
+        let bucket_result = tx.get_bucket(BLOCKS_BUCKET);
+        let bucket = match bucket_result {
+            Ok(f) => f,
+            Err(_) => {
+                let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
+                block_bucket
             }
-        }
-        txn.commit()?;
-
+        };
+        let genesis_data = b"Genesis Block".to_vec();
+        let genesis = Block::new(genesis_data, Vec::new());
+        let new_hash = genesis.clone();
+        let block_bytes = rmp_serde::to_vec(&genesis).unwrap();
+        bucket.put(genesis.hash, block_bytes)?;
+        let tip = new_hash.hash;
+        tx.commit()?;
+        print!("Tx commited");
         Ok(Blockchain { tip, db: db })
     }
 
-    fn add_block(&mut self, data: String) -> Result<(), lmdb::Error> {
-        let mut last_hash = Vec::new();
-        {
-            let txn = self.db.begin_ro_txn()?;
-            let db = txn.open_db(Some(BLOCKS_BUCKET))?;
-            last_hash = txn.get(db, b"l")?.to_vec();
-        }
-        let new_block = Block::new(data, last_hash);
-        let txn = self.db.begin_rw_txn()?;
-        {
-            let db = txn.open_db(Some(BLOCKS_BUCKET))?;
-            txn.put(db, new_block.hash.as_slice(), &new_block.serialize(), WriteFlags::empty())?;
-            txn.put(db, b"l", new_block.hash.as_slice(), WriteFlags::empty())?;
-        }
-        txn.commit()?;
-
-        self.tip = new_block.hash;
-
-        Ok(())
-    }
 }
+
+/*impl BlockchainIterator{
+    pub fn  Next(&self) -> Block {
+        
+        self.currentHash;
+    
+        return block
+    }
+}*/

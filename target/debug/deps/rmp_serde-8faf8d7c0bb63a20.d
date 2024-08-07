@@ -1,0 +1,10 @@
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/librmp_serde-8faf8d7c0bb63a20.rmeta: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/lib.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/bytes.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/config.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/decode.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/encode.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/../README.md
+
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/rmp_serde-8faf8d7c0bb63a20.d: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/lib.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/bytes.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/config.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/decode.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/encode.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/../README.md
+
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/lib.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/bytes.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/config.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/decode.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/encode.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/rmp-serde-1.3.0/src/../README.md:

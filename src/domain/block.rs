@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
+use rmp_serde::{Deserializer, Serializer};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::domain::ProofOfWork;
 
 #[derive(Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Block {
     pub timestamp: u64,
     pub data: Vec<u8>,

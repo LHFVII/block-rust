@@ -1,0 +1,7 @@
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/libproc_macro_crate-6193c30a5fe02a1b.rmeta: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro-crate-1.3.1/src/lib.rs
+
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/libproc_macro_crate-6193c30a5fe02a1b.rlib: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro-crate-1.3.1/src/lib.rs
+
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/proc_macro_crate-6193c30a5fe02a1b.d: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro-crate-1.3.1/src/lib.rs
+
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/proc-macro-crate-1.3.1/src/lib.rs:

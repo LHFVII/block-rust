@@ -4,6 +4,7 @@ use std::cmp::Ordering;
 use sha2::{Sha256,Digest};
 
 
+
 const TARGET_BITS: u16 = 20;
 const UPPER_BOUND: u16 = 256;
 const MAX_NONCE: u64 = u64::MAX;
@@ -50,6 +51,7 @@ impl ProofOfWork {
                 nonce += 1;
             }
         }
+        
 
         println!("\n\n");
         (nonce, hash)

@@ -3,6 +3,7 @@ use rmp_serde::{Deserializer, Serializer};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::domain::ProofOfWork;
 
+
 #[derive(Clone)]
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Block {
@@ -28,6 +29,9 @@ impl Block {
         };
         let pow = ProofOfWork::new(block.clone());
         let (nonce, hash) = pow.run();
+        
+        
+        
         block.hash = hash.to_vec();
         block.nonce = nonce;
         block

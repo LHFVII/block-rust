@@ -2,7 +2,7 @@ mod domain;
 
 fn main() {
     let mut bc = domain::Blockchain::new();
-
+	println!("run is over");
     /*let block1_data = b"Block 1 Data".to_vec();
     bc.add_block(block1_data);
 

@@ -2,6 +2,7 @@ use std::{path::Path, vec};
 use crate::domain::Block;
 use jammdb::{DB, Data, Error};
 use serde::de::value;
+use std::fmt::Write;
 
 const DB_FILE: &str = "./blockchain.db";
 const BLOCKS_BUCKET: &str = "blocks";
@@ -23,11 +24,13 @@ impl Blockchain {
         let bucket_result = tx.get_bucket(BLOCKS_BUCKET);
         let tip = match bucket_result {
             Ok(bucket) => {
-                print!("DB ALREADY EXISTS");
-                if let Some(data) = bucket.get("l") {
-                    let block: Block = rmp_serde::from_slice(data.kv().value()).unwrap();
-                    print!("DB ALREADY EXISTS 2");
-                    block.hash
+                if let Some(data) = bucket.get(b"l") {
+                    let mut hash_string = String::new();
+                    for byte in data.kv().value() {
+                        write!(&mut hash_string, "{:02x}", byte).unwrap();
+                    }
+                    let hash = hash_string.into_bytes();
+                    hash
                 } else {
                     Vec::new()
                 }                
@@ -45,7 +48,7 @@ impl Blockchain {
                 new_hash.hash
             }
         };
-        let db_final = DB::open("blockchain.db")?;
+        let db_final = db.clone();
         Ok(Blockchain { tip, db: db_final })
     }
 

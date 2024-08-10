@@ -1,11 +1,9 @@
 use crate::domain::Block;
 use jammdb::{DB, Error};
-const DB_FILE: &str = "./blockchain.db";
 const BLOCKS_BUCKET: &str = "blocks";
 
 pub struct Blockchain {
     pub tip: Vec<u8>,
-    pub current_hash: Vec<u8>,
     pub db: DB
 }
 
@@ -39,46 +37,36 @@ impl Blockchain {
             tx.commit()?;
             result
         };
-    
+        
         Ok(Blockchain { 
-            tip: tip.clone(),  
-            current_hash: tip, 
+            tip: tip,  
             db 
         })
     }
 
-    fn add_block(&mut self) -> Result<Self, Error> {
-        if self.current_hash.is_empty() {
-            return None;
-        }
-
-        let tx = self.blockchain.db.tx(false).ok()?;
-        let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
-
-        if let Some(data) = bucket.get(&self.current_hash) {
-            let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
-            self.current_hash = block.prev_block_hash.clone();
-            Some(block)
-        } else {
-            None
-        }
+    pub fn add_block(&mut self, data: Vec<u8>) -> Result<bool, Error> {
+        let tx = self.db.tx(false)?;
+        let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
+        println!("{:?}", self.tip);
+        let new_block = Block::new(data, self.tip.clone());
+        let block_bytes = rmp_serde::to_vec(&new_block)
+            .map_err(|_| Error::IncompatibleValue)?;
+        
+        bucket.put(new_block.hash.clone(), block_bytes)?;
+        self.tip = new_block.hash;
+        Ok(true)
     }
 
-    pub fn iter(&self) -> BlockchainIterator {
-        BlockchainIterator {
-            current_hash: self.tip.clone(),
-            blockchain: self,
-        }
-    }
-
+    
 }
 
 pub struct BlockchainIterator<'a> {
-    current_hash: Vec<u8>,
-    blockchain: &'a Blockchain,
+    pub current_hash: Vec<u8>,
+    pub blockchain: &'a Blockchain,
 }
 
 impl<'a> Iterator for BlockchainIterator<'a> {
+    
     type Item = Block;
 
     fn next(&mut self) -> Option<Self::Item> {

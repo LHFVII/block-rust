@@ -9,11 +9,11 @@ fn main() {
     let block2_data = b"Block 2 Data".to_vec();
     bc.add_block(block2_data);*/
 
-	/*for block in bc.blocks.iter() {
-		println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
+	for block in bc.iter() {
+		println!("Prev. hash: {}", hex::encode(&block));
 		println!("Data: {}", String::from_utf8_lossy(&block.data));
 		println!("Hash: {}", hex::encode(&block.hash));
 		let pow = domain::ProofOfWork::new(block.clone());
 		println!("");
-	}*/
+	}
 }

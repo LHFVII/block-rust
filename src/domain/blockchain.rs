@@ -45,15 +45,20 @@ impl Blockchain {
     }
 
     pub fn add_block(&mut self, data: Vec<u8>) -> Result<bool, Error> {
-        let tx = self.db.tx(false)?;
+        let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
-        println!("{:?}", self.tip);
         let new_block = Block::new(data, self.tip.clone());
         let block_bytes = rmp_serde::to_vec(&new_block)
             .map_err(|_| Error::IncompatibleValue)?;
-        
-        bucket.put(new_block.hash.clone(), block_bytes)?;
+        match bucket.put(new_block.hash.clone(), block_bytes) {
+            Ok(_) => println!("Block added to bucket"),
+            Err(e) => {
+                println!("Error adding block to bucket: {:?}", e);
+                return Err(Error::from(e));
+            }
+        }
         self.tip = new_block.hash;
+        println!("New tip is: {}", hex::encode(&self.tip));
         Ok(true)
     }
 

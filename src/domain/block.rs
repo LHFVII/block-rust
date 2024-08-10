@@ -29,9 +29,6 @@ impl Block {
         };
         let pow = ProofOfWork::new(block.clone());
         let (nonce, hash) = pow.run();
-        
-        
-        
         block.hash = hash.to_vec();
         block.nonce = nonce;
         block

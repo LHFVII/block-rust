@@ -8,8 +8,8 @@ fn main() {
     let block1_data = b"Block 1 Data".to_vec();
     let _ = bc.add_block(block1_data);
 
-    /*let block2_data = b"Block 2 Data".to_vec();
-    bc.add_block(block2_data);*/
+    let block2_data = b"Block 2 Data".to_vec();
+    let _ = bc.add_block(block2_data);
 	let block_iterator = BlockchainIterator{current_hash: bc.tip.clone(), blockchain: &bc};
 	for block in block_iterator {
 		println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));

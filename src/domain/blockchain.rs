@@ -1,8 +1,11 @@
+use core::panicking::panic;
 use std::{path::Path, vec};
 use crate::domain::Block;
 use jammdb::{DB, Data, Error};
 use serde::de::value;
 use std::fmt::Write;
+
+use super::block;
 
 const DB_FILE: &str = "./blockchain.db";
 const BLOCKS_BUCKET: &str = "blocks";
@@ -54,11 +57,33 @@ impl Blockchain {
 
 }
 
-/*impl BlockchainIterator{
-    pub fn  Next(&self) -> Block {
-        
-        self.currentHash;
-    
-        return block
+impl BlockchainIterator{
+    pub fn next(&self) -> Result<Block, Error> {
+        let mut tx = self.db.tx(true);
+        let mut txi;
+        match tx{
+            Ok(transaction) => {txi = transaction},
+            Err(e) => {}
+        };
+        let bucket_result = txi.get_bucket(BLOCKS_BUCKET);
+        let block: Block = match bucket_result {
+            Ok(bucket) => {
+                if let Some(data) = bucket.get(self.current_hash) {
+                    let mut hash_string = String::new();
+                    for byte in data.kv().value() {
+                        write!(&mut hash_string, "{:02x}", byte).unwrap();
+                    }
+                    let block: Block = rmp_serde::from_slice(data.kv().value()).unwrap();
+                    return block;
+                }else{
+                    Block::new(Vec::new(), Vec::new())
+                }
+            },
+            Err(_) => {
+                panic!("PANIC!")
+            }
+        };
+        self.current_hash = block.prev_block_hash;
+        return Ok(block)
     }
-}*/
+}

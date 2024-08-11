@@ -1,6 +1,20 @@
-use clap::{parser::ValueSource, Arg, Command};
-use std::process;
+use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct Args {
+    #[command(subcommand)]
+    cmd: Commands
+}
+
+#[derive(Subcommand, Debug, Clone)]
+enum Commands {
+    PrintChain,
+    AddBlock {
+        data: String,
+    }
+}
 pub struct CLI {
     pub bc: Blockchain,
 }
@@ -11,39 +25,29 @@ impl CLI{
     }
 
     pub fn run(&self){
-        let matches = Command::new("Blockchain CLI")
-        .version("1.0")
-        .author("Your Name")
-        .about("A simple blockchain CLI")
-        .subcommand(Command::new("addblock")
-            .about("Add a block to the blockchain")
-            .arg(Arg::new("data")
-                .short('d')
-                .long("data")
-                .value_name("BLOCK_DATA")
-                .help("Sets the data for the new block")
-                .required(true)))
-        .subcommand(Command::new("printchain")
-            .about("Print all the blocks of the blockchain"))
-        .get_matches();
-
-    match matches.subcommand() {
-        Some(("addblock", add_matches)) => {
-            let data = add_matches.value_source("data").unwrap();
-            self.add_block(data);
+        loop {
+            let mut buf = String::from("");
+            
+            std::io::stdin().read_line(&mut buf).expect("Couldn't parse stdin");
+            let line = buf.trim();
+            let args = shlex::split(line).ok_or("error: Invalid quoting").unwrap();
+    
+            println!("{:?}" , args);
+    
+            match Args::try_parse_from(args.iter()).map_err(|e| e.to_string()) {
+                Ok(cli) => {
+                    println!("{:?}",cli.cmd);
+                    match cli.cmd {
+                        Commands::PrintChain => self.print_chain(),
+                        Commands::AddBlock{data} => self.add_block(data)
+                   }
+                }
+                Err(_) => println!("That's not a valid command!")
+           };
         }
-        Some(("printchain", _)) => {
-            self.print_chain();
-        }
-        _ => {
-            println!("Invalid command. Use --help for usage information.");
-            process::exit(1);
-        }
-    }
-
     }
     
-    fn add_block(&self, data: ValueSource) {
+    fn add_block(&self, data: String) {
         println!("adding block to chain...beep boop")
         /*self.bc.add_block(data);
         println!("Success!")*/

@@ -1,0 +1,6 @@
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/libclap_lex-4d62469367a00928.rmeta: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/lib.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/ext.rs
+
+/Users/rodriguezpatricio/Desktop/Deving/Personal/block-rust/target/debug/deps/clap_lex-4d62469367a00928.d: /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/lib.rs /Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/ext.rs
+
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/lib.rs:
+/Users/rodriguezpatricio/.cargo/registry/src/index.crates.io-6f17d22bba15001f/clap_lex-0.7.2/src/ext.rs:

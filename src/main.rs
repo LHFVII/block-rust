@@ -1,11 +1,16 @@
 mod domain;
 
 use domain::BlockchainIterator;
+use domain::cli;
 
 fn main() {
-    let mut bc = domain::Blockchain::new().expect("Failed to create blockchain");
+    let bc = domain::Blockchain::new().expect("Failed to create blockchain");
 	println!("Blockchain created");
-    let block1_data = b"Block 1 Data".to_vec();
+	
+    let cli = domain::cli::CLI::new(bc);
+    cli.run();
+
+    /*let block1_data = b"Block 1 Data".to_vec();
     let _ = bc.add_block(block1_data);
 
     let block2_data = b"Block 2 Data".to_vec();
@@ -17,5 +22,5 @@ fn main() {
 		println!("Hash: {}", hex::encode(&block.hash));
 		let pow = domain::ProofOfWork::new(block.clone());
 		println!("");
-	}
+	}*/
 }

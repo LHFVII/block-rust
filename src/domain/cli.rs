@@ -1,7 +1,6 @@
 use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
-use std::error::Error;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -28,6 +27,7 @@ impl CLI{
 
     pub fn run(&mut self) {
         loop {
+            self.show_commands();
             let mut buf = String::new();
             std::io::stdin().read_line(&mut buf).expect("Couldn't parse stdin");
             let line = buf.trim();
@@ -47,19 +47,19 @@ impl CLI{
     
     fn add_block(&mut self, data: String) {
         let data_vec = data.into_bytes();
-        self.bc.add_block(data_vec);
+        let _ = self.bc.add_block(data_vec);
         println!("Success!")
     }
     
     fn print_chain(&mut self) {
-        println!("Printing chain...beep boop");
+        println!("printing...");
         let mut current_block = self.bc.next();
     
         while let Some(block) = current_block {
             println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
             println!("Data: {}", String::from_utf8_lossy(&block.data));
             println!("Hash: {}", hex::encode(&block.hash));
-            let pow = ProofOfWork::new(block.clone());
+            ProofOfWork::new(block.clone());
             println!();
     
             if block.prev_block_hash.is_empty() {
@@ -68,6 +68,13 @@ impl CLI{
     
             current_block = self.bc.next();
         }
+    }
+
+    fn show_commands(&mut self) {
+        println!(r#"COMMANDS:
+    print-chain - Shows all blocks that belong to the current blockchain.
+    add-block <data> - Adds a block containing the data input.
+    "#);
     }
     
 }

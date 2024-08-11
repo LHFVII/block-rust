@@ -1,5 +1,7 @@
 use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
+use crate::domain::ProofOfWork;
+use std::error::Error;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -24,53 +26,49 @@ impl CLI{
         CLI{bc: bc}
     }
 
-    pub fn run(&self){
+    pub fn run(&mut self) {
         loop {
-            let mut buf = String::from("");
-            
+            let mut buf = String::new();
             std::io::stdin().read_line(&mut buf).expect("Couldn't parse stdin");
             let line = buf.trim();
-            let args = shlex::split(line).ok_or("error: Invalid quoting").unwrap();
-    
-            println!("{:?}" , args);
-    
-            match Args::try_parse_from(args.iter()).map_err(|e| e.to_string()) {
+            let mut args = vec!["program".to_string()]; // Add a dummy program name
+            args.extend(shlex::split(line).ok_or("error: Invalid quoting").unwrap());
+            match Args::try_parse_from(args) {
                 Ok(cli) => {
-                    println!("{:?}",cli.cmd);
                     match cli.cmd {
                         Commands::PrintChain => self.print_chain(),
-                        Commands::AddBlock{data} => self.add_block(data)
-                   }
+                        Commands::AddBlock { data } => self.add_block(data),
+                    }
                 }
-                Err(_) => println!("That's not a valid command!")
-           };
+                Err(e) => println!("That's not a valid command! Error: {}", e),
+            };
         }
     }
     
-    fn add_block(&self, data: String) {
-        println!("adding block to chain...beep boop")
-        /*self.bc.add_block(data);
-        println!("Success!")*/
+    fn add_block(&mut self, data: String) {
+        let data_vec = data.into_bytes();
+        self.bc.add_block(data_vec);
+        println!("Success!")
     }
     
-    fn print_chain(&self) {
-        println!("Printing chain...beep boop")
-        /*bci := cli.bc.Iterator()
+    fn print_chain(&mut self) {
+        println!("Printing chain...beep boop");
+        let mut current_block = self.bc.next();
     
-        for {
-            block := bci.Next()
+        while let Some(block) = current_block {
+            println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
+            println!("Data: {}", String::from_utf8_lossy(&block.data));
+            println!("Hash: {}", hex::encode(&block.hash));
+            let pow = ProofOfWork::new(block.clone());
+            println!();
     
-            fmt.Printf("Prev. hash: %x\n", block.PrevBlockHash)
-            fmt.Printf("Data: %s\n", block.Data)
-            fmt.Printf("Hash: %x\n", block.Hash)
-            pow := NewProofOfWork(block)
-            fmt.Printf("PoW: %s\n", strconv.FormatBool(pow.Validate()))
-            fmt.Println()
-    
-            if len(block.PrevBlockHash) == 0 {
-                break
+            if block.prev_block_hash.is_empty() {
+                break;
             }
-        }*/
+    
+            current_block = self.bc.next();
+        }
     }
+    
 }
 

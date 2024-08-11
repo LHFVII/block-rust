@@ -4,7 +4,8 @@ const BLOCKS_BUCKET: &str = "blocks";
 
 pub struct Blockchain {
     pub tip: Vec<u8>,
-    pub db: DB
+    pub db: DB,
+    pub current_hash: Vec<u8>,
 }
 
 impl Blockchain {
@@ -39,7 +40,8 @@ impl Blockchain {
         };
         
         Ok(Blockchain { 
-            tip: tip,  
+            tip: tip.clone(),
+            current_hash: tip,
             db 
         })
     }
@@ -62,24 +64,12 @@ impl Blockchain {
         Ok(true)
     }
 
-    
-}
-
-pub struct BlockchainIterator<'a> {
-    pub current_hash: Vec<u8>,
-    pub blockchain: &'a Blockchain,
-}
-
-impl<'a> Iterator for BlockchainIterator<'a> {
-    
-    type Item = Block;
-
-    fn next(&mut self) -> Option<Self::Item> {
+    pub fn next(&mut self) -> Option<Block> {
         if self.current_hash.is_empty() {
             return None;
         }
 
-        let tx = self.blockchain.db.tx(false).ok()?;
+        let tx = self.db.tx(false).ok()?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
 
         if let Some(data) = bucket.get(&self.current_hash) {
@@ -90,5 +80,9 @@ impl<'a> Iterator for BlockchainIterator<'a> {
             None
         }
     }
+
+    
 }
+
+
 

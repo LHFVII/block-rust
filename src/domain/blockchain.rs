@@ -59,8 +59,12 @@ impl Blockchain {
                 return Err(Error::from(e));
             }
         }
+        // Update the "l" key with the new block's hash
+        bucket.put(b"l".to_vec(), new_block.hash.clone())?;
+
+        self.current_hash = new_block.hash.clone();
         self.tip = new_block.hash;
-        println!("New tip is: {}", hex::encode(&self.tip));
+        tx.commit()?;
         Ok(true)
     }
 
@@ -68,15 +72,14 @@ impl Blockchain {
         if self.current_hash.is_empty() {
             return None;
         }
-
         let tx = self.db.tx(false).ok()?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
-
         if let Some(data) = bucket.get(&self.current_hash) {
             let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
             self.current_hash = block.prev_block_hash.clone();
             Some(block)
         } else {
+            println!("Nothing was found");
             None
         }
     }

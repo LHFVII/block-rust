@@ -1,13 +1,22 @@
+use serde::{Deserialize, Serialize};
+
+#[derive(Clone)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TxInput{
     pub txid: Vec<u8>,
     pub vout: u32,
     pub script_sig: String,
 
 }
+#[derive(Clone)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TxOutput{
     pub value: u32,
     pub script_pubkey: String
 }
+
+#[derive(Clone)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct Transaction{
     pub id: Vec<u8>,
     pub vin: Vec<TxInput>,
@@ -15,7 +24,7 @@ pub struct Transaction{
 }
 
 impl Transaction{
-    pub fn new_coinbase_tx(self, to: String, mut data: String) -> Self{
+    pub fn new_coinbase_tx(to: String, mut data: String) -> Self{
         if data.len() == 0 {
             data = String::from("Reward to");
         }

@@ -1,5 +1,7 @@
 use crate::domain::Block;
 use jammdb::{DB, Error};
+
+use super::Transaction;
 const BLOCKS_BUCKET: &str = "blocks";
 
 pub struct Blockchain {
@@ -9,7 +11,7 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new() -> Result<Self, Error> {
+    pub fn new(address: String, genesis_cb_data: String) -> Result<Self, Error> {
         let db = DB::open("blockchain.db")?;
         let tip = {
             let tx = db.tx(true)?;
@@ -22,7 +24,8 @@ impl Blockchain {
                 },
                 Err(_) => {
                     let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
-                    let genesis = Block::new(b"Genesis Block".to_vec(), Vec::new());
+                    let coinbase_tx = Transaction::new_coinbase_tx(address,genesis_cb_data);
+                    let genesis = Block::new(vec![coinbase_tx], Vec::new());
                     let genesis_hash = genesis.hash.clone();
                     
                     let block_bytes = rmp_serde::to_vec(&genesis)

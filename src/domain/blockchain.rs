@@ -1,7 +1,9 @@
-use crate::domain::Block;
+use std::collections::HashMap;
+
+use crate::domain::{transaction, Block};
 use jammdb::{DB, Error};
 
-use super::Transaction;
+use super::{Transaction, TxOutput};
 const BLOCKS_BUCKET: &str = "blocks";
 
 pub struct Blockchain {
@@ -49,24 +51,17 @@ impl Blockchain {
         })
     }
 
-    pub fn add_block(&mut self, data: Vec<u8>) -> Result<bool, Error> {
+    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Error> {
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
-        let new_block = Block::new(data, self.tip.clone());
-        let block_bytes = rmp_serde::to_vec(&new_block)
-            .map_err(|_| Error::IncompatibleValue)?;
-        match bucket.put(new_block.hash.clone(), block_bytes) {
-            Ok(_) => println!("Block added to bucket"),
-            Err(e) => {
-                println!("Error adding block to bucket: {:?}", e);
-                return Err(Error::from(e));
-            }
+        if let Some(data) = bucket.get(b"l") {
+            let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
+            let new_block = Block::new(transactions, block.hash);
+            let block_bytes = rmp_serde::to_vec(&new_block)
+                        .map_err(|_| Error::IncompatibleValue)?;
+            bucket.put(new_block.hash, block_bytes)?;
+            bucket.put(b"l".to_vec(), new_block.hash)?;
         }
-        // Update the "l" key with the new block's hash
-        bucket.put(b"l".to_vec(), new_block.hash.clone())?;
-
-        self.current_hash = new_block.hash.clone();
-        self.tip = new_block.hash;
         tx.commit()?;
         Ok(true)
     }
@@ -85,6 +80,18 @@ impl Blockchain {
             println!("Nothing was found");
             None
         }
+    }
+
+    pub fn find_unspent_transactions(address: String) -> Vec<Transaction>{
+        vec![Transaction::new()]
+    }
+
+    pub fn find_utxo(address: String) -> Vec<TxOutput>{
+        vec![Transaction::new()]
+    }
+
+    pub fn find_spendable_outputs() -> HashMap<String, Vec<u32>> {
+        HashMap::<String, Vec<u32>>::new()
     }
 
     

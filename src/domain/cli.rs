@@ -2,6 +2,7 @@ use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 
+use super::blockchain;
 use super::Transaction;
 
 #[derive(Parser)]
@@ -14,17 +15,25 @@ struct Args {
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
     PrintChain,
-    AddBlock {
-        data: String,
+    CreateBlockchain {
+        address: String,
+    },
+    GetBalance{
+        address: String
+    },
+    Send{
+        from: String,
+        to: String,
+        amount: u32,
     }
 }
 pub struct CLI {
-    pub bc: Blockchain,
+    pub bc: Option<Blockchain>,
 }
 
 impl CLI{
-    pub fn new(bc: Blockchain) -> Self{
-        CLI{bc: bc}
+    pub fn new() -> Self{
+        CLI{bc: None}
     }
 
     pub fn run(&mut self) {
@@ -39,23 +48,24 @@ impl CLI{
                 Ok(cli) => {
                     match cli.cmd {
                         Commands::PrintChain => self.print_chain(),
-                        Commands::AddBlock { data } => self.add_block(data),
+                        Commands::CreateBlockchain { address } => self.create_blockchain(address),
+                        Commands::GetBalance { address } => self.get_balance(address),
+                        Commands::Send { from, to, amount } => self.send(from, to, amount),
                     }
                 }
                 Err(e) => println!("That's not a valid command! Error: {}", e),
             };
         }
     }
-    
-    fn add_block(&mut self, data: String) {
-        let data_vec = data.into_bytes();
-        let _ = self.bc.add_block(data_vec);
-        println!("Success!")
-    }
 
+    fn create_blockchain(&mut self,address: String) {
+        println!("To be implemented");
+    }
+    
     fn get_balance(&mut self,address: String) {
+        let bc = &mut self.bc.as_mut().unwrap();
         let mut balance = 0;
-        let utxos = self.bc.find_utxo(&address.to_string());
+        let utxos = bc.find_utxo(&address.to_string());
         for out in utxos{
             balance += out.value;
         }
@@ -63,20 +73,21 @@ impl CLI{
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
-        let tx = Transaction::new_utxo_transaction(&from, to, amount,&mut self.bc);
+        let bc = &mut self.bc.as_mut().unwrap();
+        let tx = Transaction::new_utxo_transaction(&from, to, amount,bc);
         let mut tx_vec = Vec::new();
         tx_vec.push(tx);
-        self.bc.mine_block(tx_vec);
+        bc.mine_block(tx_vec);
         println!("Successfully sent tx");
     }
     
     fn print_chain(&mut self) {
         println!("printing...");
-        let mut current_block = self.bc.next();
+        let bc = &mut self.bc.as_mut().unwrap();
+        let mut current_block = bc.next();
     
         while let Some(block) = current_block {
             println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
-            println!("Data: {}", String::from_utf8_lossy(&block.data));
             println!("Hash: {}", hex::encode(&block.hash));
             ProofOfWork::new(block.clone());
             println!();
@@ -84,8 +95,7 @@ impl CLI{
             if block.prev_block_hash.is_empty() {
                 break;
             }
-    
-            current_block = self.bc.next();
+            current_block = bc.next();
         }
     }
 

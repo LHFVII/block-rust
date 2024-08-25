@@ -42,12 +42,27 @@ impl Transaction{
         return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
     }
 
-    pub fn new_utxo_transaction(from: String, to: String, amount: u32, bc: Blockchain) -> Self{
-        let mut inputs: Vec<TxInput>;
-        let mut outputs: Vec<TxOutput>;
+    pub fn new_utxo_transaction(from: &str, to: String, amount: u32,bc: &mut Blockchain) -> Self{
+        let mut inputs: Vec<TxInput> = Vec::new();
+        let mut outputs: Vec<TxOutput> = Vec::new();
         let (acc, valid_outputs) = bc.find_spendable_outputs(&from.to_string(), amount);
         
+        for (txid, outs) in valid_outputs{
+            let id = hex::decode(txid).unwrap();
+            for out in outs{
+                let input = TxInput{txid: id.clone(), vout: out,script_sig: from.into()};
+                inputs.push(input);
+            }
+        }
+        outputs.push(TxOutput{value:amount, script_pubkey: to});
+        if acc>amount{
+            let value = acc - (amount as u32);
+            outputs.push(TxOutput{value: acc - amount, script_pubkey: from.to_string()});
+        }
+        let mut tx = Transaction{id: Vec::new(), vin:inputs, vout:outputs};
+        tx.set_id();
 
+        return tx
     }
 
     pub fn set_id(&mut self) -> Result<(), Box<dyn std::error::Error>> {

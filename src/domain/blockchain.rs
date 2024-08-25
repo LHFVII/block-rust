@@ -55,11 +55,12 @@ impl Blockchain {
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
         if let Some(data) = bucket.get(b"l") {
-            let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
+            let block: Block = rmp_serde::from_slice(data.kv().value())
+                .map_err(|e| Error::IncompatibleValue)?;
             let new_block = Block::new(transactions, block.hash);
             let block_bytes = rmp_serde::to_vec(&new_block)
                         .map_err(|_| Error::IncompatibleValue)?;
-            bucket.put(new_block.hash, block_bytes)?;
+            bucket.put(new_block.hash.clone(), block_bytes)?;
             bucket.put(b"l".to_vec(), new_block.hash)?;
         }
         tx.commit()?;
@@ -134,8 +135,26 @@ impl Blockchain {
         utxos
     }
 
-    pub fn find_spendable_outputs(&mut self, from: &str, amount: u32) -> (usize,HashMap<String, Vec<u32>>) {
-        (1,HashMap::<String, Vec<u32>>::new())
+    pub fn find_spendable_outputs(&mut self, address: &str, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {
+        let mut unspent_outputs:HashMap::<String, Vec<u8>> = HashMap::<String, Vec<u8>>::new();
+        let unspent_txs = self.find_unspent_transactions(address.to_string());
+        let mut accumulated = 0;
+        'work:
+            for tx in unspent_txs{
+                let id = hex::encode(tx.id);
+                for (out_id,out) in tx.vout.iter().enumerate(){
+                    if out.can_be_unlocked_with(address.to_string()) && accumulated < amount {
+                        accumulated += out.value;
+                        unspent_outputs.entry(id.clone()).or_default().push(out_id as u8);
+
+                        if accumulated >= amount{
+                            break 'work;
+                        }
+                    }
+                }
+            }
+
+        (1,HashMap::<String, Vec<u8>>::new())
     }
 
     

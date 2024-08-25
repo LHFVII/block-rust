@@ -2,6 +2,8 @@ use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 
+use super::Transaction;
+
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Args {
@@ -58,6 +60,14 @@ impl CLI{
             balance += out.value;
         }
         println!("Balance of {}: {}", address, balance);
+    }
+
+    fn send(&mut self, from: String, to: String, amount:u32){
+        let tx = Transaction::new_utxo_transaction(&from, to, amount,&mut self.bc);
+        let mut tx_vec = Vec::new();
+        tx_vec.push(tx);
+        self.bc.mine_block(tx_vec);
+        println!("Successfully sent tx");
     }
     
     fn print_chain(&mut self) {

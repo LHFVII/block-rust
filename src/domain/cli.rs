@@ -101,8 +101,10 @@ impl CLI{
 
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
+    create-blockchain <address> - Adds a block containing the data input.
+    get-balance <address> - Gets the balance of an address
     print-chain - Shows all blocks that belong to the current blockchain.
-    add-block <data> - Adds a block containing the data input.
+    send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);
     }
     

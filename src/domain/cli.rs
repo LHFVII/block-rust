@@ -50,6 +50,15 @@ impl CLI{
         let _ = self.bc.add_block(data_vec);
         println!("Success!")
     }
+
+    fn get_balance(&mut self,address: String) {
+        let mut balance = 0;
+        let utxos = self.bc.find_utxo(&address.to_string());
+        for out in utxos{
+            balance += out.value;
+        }
+        println!("Balance of {}: {}", address, balance);
+    }
     
     fn print_chain(&mut self) {
         println!("printing...");

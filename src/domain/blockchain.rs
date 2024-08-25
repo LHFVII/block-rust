@@ -82,16 +82,60 @@ impl Blockchain {
         }
     }
 
-    pub fn find_unspent_transactions(address: String) -> Vec<Transaction>{
-        vec![Transaction::new()]
+    pub fn find_unspent_transactions(&mut self, address: String) -> Vec<Transaction> {
+        let mut unspent_txs: Vec<Transaction> = Vec::new();
+        let mut spent_txos: HashMap<String, Vec<u8>> = HashMap::new();
+        let mut current_block = self.next();
+        while let Some(ref block) = current_block {
+            for tx in &block.transactions {
+                let current_tx = tx.clone();
+                let tx_id = hex::encode(&current_tx.id);
+                'outputs: for (out_idx, out) in current_tx.vout.iter().enumerate() {
+                    if let Some(spent_outputs) = spent_txos.get(&tx_id) {
+                        if spent_outputs.contains(&(out_idx as u8)) {
+                            continue 'outputs;
+                        }
+                    }
+            
+                    if out.can_be_unlocked_with(address.clone()) {
+                        unspent_txs.push(tx.clone());
+                    }
+                }
+                if !tx.is_coinbase() {
+                    for input in &tx.vin {
+                        if input.can_unlock_output_with(address.clone()) {
+                            let in_tx_id = hex::encode(&input.txid);
+                            spent_txos.entry(in_tx_id)
+                                .or_insert_with(Vec::new)
+                                .push(input.vout);
+                        }
+                    }
+                }
+            }
+            if block.prev_block_hash.is_empty() {
+                break;
+            }
+            current_block = self.next();
+        }
+    
+        unspent_txs
     }
 
-    pub fn find_utxo(address: String) -> Vec<TxOutput>{
-        vec![Transaction::new()]
+    pub fn find_utxo(&mut self,address: &str) -> Vec<TxOutput>{
+        let mut utxos = Vec::new();
+        let unspent_txs = self.find_unspent_transactions(address.to_string());
+        for tx in unspent_txs{
+            for out in tx.vout{
+                if out.can_be_unlocked_with(address.to_string()){
+                    utxos.push(out);
+                }
+            }
+        }
+        utxos
     }
 
-    pub fn find_spendable_outputs() -> HashMap<String, Vec<u32>> {
-        HashMap::<String, Vec<u32>>::new()
+    pub fn find_spendable_outputs(&mut self, from: &str, amount: u32) -> (usize,HashMap<String, Vec<u32>>) {
+        (1,HashMap::<String, Vec<u32>>::new())
     }
 
     

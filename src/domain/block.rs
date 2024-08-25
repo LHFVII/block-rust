@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use rmp_serde::{Deserializer, Serializer};
+use sha2::{Sha256,Digest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::domain::ProofOfWork;
 
@@ -48,5 +49,16 @@ impl Block {
     pub fn deserialize(encoded: Vec<u8>) -> Self{
         let decoded = bincode::deserialize(&encoded[..]).unwrap();
         return decoded;
+    }
+
+    pub fn hash_transactions(&self) -> Vec<u8>{
+        let tx_hashes: Vec<Vec<u8>> = self.transactions.iter()
+        .map(|tx| tx.id.clone())
+        .collect();
+
+        let joined_hashes: Vec<u8> = tx_hashes.concat();
+        
+        let tx_hash = Sha256::digest(&joined_hashes);
+        tx_hash.to_vec()
     }
 }

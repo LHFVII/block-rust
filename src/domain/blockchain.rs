@@ -5,6 +5,7 @@ use jammdb::{DB, Error};
 
 use super::{Transaction, TxOutput};
 const BLOCKS_BUCKET: &str = "blocks";
+const GENESIS_COINBASE_DATA: &str = "ALPHA";
 
 pub struct Blockchain {
     pub tip: Vec<u8>,
@@ -13,7 +14,7 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(address: String, genesis_cb_data: String) -> Result<Self, Error> {
+    pub fn new(address: String) -> Result<Self, Error> {
         let db = DB::open("blockchain.db")?;
         let tip = {
             let tx = db.tx(true)?;
@@ -26,7 +27,7 @@ impl Blockchain {
                 },
                 Err(_) => {
                     let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
-                    let coinbase_tx = Transaction::new_coinbase_tx(address,genesis_cb_data);
+                    let coinbase_tx = Transaction::new_coinbase_tx(address,String::from(GENESIS_COINBASE_DATA));
                     let genesis = Block::new(vec![coinbase_tx], Vec::new());
                     let genesis_hash = genesis.hash.clone();
                     

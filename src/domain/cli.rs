@@ -59,7 +59,8 @@ impl CLI{
     }
 
     fn create_blockchain(&mut self,address: String) {
-        println!("To be implemented");
+        self.bc = Some(Blockchain::new(address).unwrap());
+        println!("Blockchain created successfully");
     }
     
     fn get_balance(&mut self,address: String) {

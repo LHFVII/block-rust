@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::domain::{transaction, Block};
+use crate::domain::{transaction, Block, Transaction, TxOutput};
 use jammdb::{DB, Error};
 
 

@@ -34,6 +34,7 @@ impl Transaction{
     pub fn new_utxo_transaction(from: &str, to: String, amount: u32,bc: &mut Blockchain) -> Self{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
+        
         let (acc, valid_outputs) = bc.find_spendable_outputs(&from.to_string(), amount);
         
         for (txid, outs) in valid_outputs{

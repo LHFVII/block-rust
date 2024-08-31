@@ -1,6 +1,7 @@
 use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
+use crate::domain::Transaction;
 
 
 #[derive(Parser)]

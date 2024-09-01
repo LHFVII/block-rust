@@ -99,13 +99,13 @@ impl Blockchain {
                         }
                     }
             
-                    if out.can_be_unlocked_with(address.clone()) {
+                    if out.is_locked_with_key(address.clone().into_bytes()) {
                         unspent_txs.push(tx.clone());
                     }
                 }
                 if !tx.is_coinbase() {
                     for input in &tx.vin {
-                        if input.can_unlock_output_with(address.clone()) {
+                        if input.uses_key(address.clone().into_bytes()) {
                             let in_tx_id = hex::encode(&input.txid);
                             spent_txos.entry(in_tx_id)
                                 .or_insert_with(Vec::new)
@@ -128,7 +128,7 @@ impl Blockchain {
         let unspent_txs = self.find_unspent_transactions(address.to_string());
         for tx in unspent_txs{
             for out in tx.vout{
-                if out.can_be_unlocked_with(address.to_string()){
+                if out.is_locked_with_key(address.to_string().into_bytes()){
                     utxos.push(out);
                 }
             }
@@ -144,7 +144,7 @@ impl Blockchain {
             for tx in unspent_txs{
                 let id = hex::encode(tx.id);
                 for (out_id,out) in tx.vout.iter().enumerate(){
-                    if out.can_be_unlocked_with(address.to_string()) && accumulated < amount {
+                    if out.is_locked_with_key(address.to_string().into_bytes()) && accumulated < amount {
                         accumulated += out.value;
                         unspent_outputs.entry(id.clone()).or_default().push(out_id as u8);
 

@@ -34,20 +34,22 @@ impl Transaction{
     pub fn new_utxo_transaction(from: &str, to: String, amount: u32,bc: &mut Blockchain) -> Self{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
+
+        let wallets = newWallets();
         
         let (acc, valid_outputs) = bc.find_spendable_outputs(&from.to_string(), amount);
         
         for (txid, outs) in valid_outputs{
             let id = hex::decode(txid).unwrap();
             for out in outs{
-                let input = TxInput{txid: id.clone(), vout: out,script_sig: from.into()};
+                let input = TxInput{txid: id.clone(), vout: out,script_sig: from.into(), pubkey: };
                 inputs.push(input);
             }
         }
-        outputs.push(TxOutput{value:amount, script_pubkey: to});
+        outputs.push(TxOutput{value:amount, pubkey_hash: to.into_bytes()});
         if acc>amount{
             let value = acc - (amount as u32);
-            outputs.push(TxOutput{value: acc - amount, script_pubkey: from.to_string()});
+            outputs.push(TxOutput{value: acc - amount, pubkey_hash: to.into_bytes()});
         }
         let mut tx = Transaction{id: Vec::new(), vin:inputs, vout:outputs};
         tx.hash();

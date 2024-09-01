@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use rmp_serde::{Deserializer, Serializer};
 use sha2::{Sha256,Digest};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::domain::ProofOfWork;
+use crate::domain::{ProofOfWork, Transaction};
 
 
 #[derive(Clone)]

@@ -5,19 +5,17 @@ use sha2::{Sha256};
 use ripemd::{Ripemd160, Ripemd320, Digest};
 use bs58;
 use std::collections::HashMap;
+use std::env;
+use std::fs;
 
 const VERSION: u8 = 0x00;
 const ADDRESS_CHECKSUM_LEN: usize = 4;
+const WALLET_FILE: &str = "";
 
 pub struct Wallet {
     private_key: SecretKey,
     public_key: PublicKey,
 }
-
-pub struct Wallets {
-    wallets: HashMap<String, Wallet>,
-}
-
 impl Wallet {
     pub fn new() -> Self {
         let secp = Secp256k1::new();
@@ -64,4 +62,28 @@ pub fn checksum(payload: Vec<u8>)-> Vec<u8>{
     let first_sha = Sha256::digest(payload);
     let second_sha = Sha256::digest(first_sha);
     second_sha[..ADDRESS_CHECKSUM_LEN].to_vec()
+}
+
+pub struct Wallets {
+    wallets: HashMap<String, Wallet>,
+}
+
+impl Wallets{
+    pub fn new()-> Self{
+        let hashmap = HashMap::new();
+        let wallets = Wallets{
+            wallets: hashmap
+        };
+        return wallets;
+    }
+
+    pub fn load_from_files(&mut self){
+        let contents = fs::read_to_string(WALLET_FILE)
+        .expect("Should have been able to read the file");
+        
+        
+
+
+
+    }
 }

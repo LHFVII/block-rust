@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use secp256k1::{SecretKey};
 use serde::{de::value, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
@@ -42,7 +44,7 @@ impl Transaction{
         for (txid, outs) in valid_outputs{
             let id = hex::decode(txid).unwrap();
             for out in outs{
-                let input = TxInput{txid: id.clone(), vout: out,script_sig: from.into(), pubkey: };
+                let input = TxInput{txid: id.clone(), vout: out,script_sig: from.into(), pubkey: wallet.PublicKey};
                 inputs.push(input);
             }
         }
@@ -64,6 +66,18 @@ impl Transaction{
         let hash = Sha256::digest(&encoded);
         self.id = hash.to_vec();
         Ok(())
+    }
+
+    pub fn sign(&mut self,private_key: SecretKey, prev_txs: HashMap<String,Transaction>){
+        if self.is_coinbase(){
+            return;
+        }
+        for vin in &self.vin{
+            if !prev_txs.contains_key(&hex::encode(vin.txid.clone())){
+                panic!("ERROR: previous transaction is not correct")
+            }
+        }
+
     }
 }
 

@@ -1,7 +1,8 @@
 use std::collections::HashMap;
 
-use crate::domain::{transaction, Block, Transaction, TxOutput};
+use crate::domain::{Transaction, Block, TxOutput};
 use jammdb::{DB, Error};
+use p256::SecretKey;
 
 
 const BLOCKS_BUCKET: &str = "blocks";
@@ -156,6 +157,33 @@ impl Blockchain {
             }
 
         (1,HashMap::<String, Vec<u8>>::new())
+    }
+
+    pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Error>{
+        let mut current_block = self.next();
+    
+        while let Some(block) = current_block {
+            for tx in block.transactions{
+                if tx.id == id{
+                    return Ok(tx)
+                }
+            }
+            if block.prev_block_hash.is_empty() {
+                break;
+            }
+            current_block = self.next();
+        }
+        return Err(Error::IncompatibleValue)
+        
+    }
+
+    pub fn sign_transaction(&self,transaction:Transaction, private_key: SecretKey){
+        let mut prev_txs = HashMap::new();
+        for vin in transaction.vin{
+            let prev_tx = self.find_transaction(vin.txid);
+            
+        }
+        transaction.sign(private_key,prev_txs);
     }
 
     

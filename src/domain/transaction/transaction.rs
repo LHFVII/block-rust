@@ -50,8 +50,7 @@ impl Transaction{
         if acc < amount {
             return Err("ERROR: Not enough funds".into());
         }
-
-        // Build a list of inputs
+        
         for (txid, outs) in valid_outputs {
             let tx_id = hex::decode(txid)?;
             for out in outs {
@@ -91,11 +90,8 @@ impl Transaction{
     }
 
     fn serialize(&self) -> Vec<u8> {
-        // Implement serialization logic here
-        // This is a placeholder and should be replaced with actual serialization code
         let mut result = Vec::new();
         result.extend(&self.id);
-        // Serialize vin and vout here
         result
     }
 

@@ -1,20 +1,25 @@
 use secp256k1::{Secp256k1, SecretKey, PublicKey};
 use p256::ecdsa::{SigningKey, VerifyingKey};
 use rand_core::OsRng;
+use serde::{Serialize, Deserialize};
 use sha2::{Sha256};
 use ripemd::{Ripemd160, Ripemd320, Digest};
 use bs58;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::path::Path;
+use bincode;
+use std::io::{Read, Write};
+
 
 const VERSION: u8 = 0x00;
 const ADDRESS_CHECKSUM_LEN: usize = 4;
-const WALLET_FILE: &str = "";
+const WALLET_FILE: &str = "wallet.dat";
 
 pub struct Wallet {
-    private_key: SecretKey,
-    public_key: PublicKey,
+    pub private_key: SecretKey,
+    pub public_key: PublicKey,
 }
 impl Wallet {
     pub fn new() -> Self {
@@ -68,22 +73,51 @@ pub struct Wallets {
     wallets: HashMap<String, Wallet>,
 }
 
-impl Wallets{
-    pub fn new()-> Self{
-        let hashmap = HashMap::new();
-        let wallets = Wallets{
-            wallets: hashmap
+impl Wallets {
+    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+        let mut wallets = Wallets {
+            wallets: HashMap::new(),
         };
-        return wallets;
+        wallets.load_from_file()?;
+        Ok(wallets)
     }
 
-    pub fn load_from_files(&mut self){
-        let contents = fs::read_to_string(WALLET_FILE)
-        .expect("Should have been able to read the file");
-        
-        
+    pub fn create_wallet(&mut self) -> String {
+        let wallet = Wallet::new();
+        let address = wallet.get_address();
+        let stringified_address = String::from_utf8_lossy(&address).to_string();
+        self.wallets.insert(stringified_address.clone(), wallet);
+        stringified_address
+    }
 
+    pub fn get_addresses(&self) -> Vec<String> {
+        self.wallets.keys().cloned().collect()
+    }
 
+    pub fn get_wallet(&self, address: &str) -> Option<Wallet> {
+        self.wallets.get(address)
+    }
 
+    pub fn load_from_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+        let path = Path::new(WALLET_FILE);
+        if !path.exists() {
+            return Ok(());
+        }
+
+        let mut file = fs::File::open(path)?;
+        let mut content = Vec::new();
+        file.read_to_end(&mut content)?;
+
+        let loaded_wallets: Wallets = bincode::deserialize(&content)?;
+        self.wallets = loaded_wallets.wallets;
+
+        Ok(())
+    }
+
+    pub fn save_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+        let content = bincode::serialize(self)?;
+        let mut file = fs::File::create(WALLET_FILE)?;
+        file.write_all(&content)?;
+        Ok(())
     }
 }

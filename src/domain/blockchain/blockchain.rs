@@ -2,7 +2,8 @@ use std::collections::HashMap;
 
 use crate::domain::{Transaction, Block, TxOutput};
 use jammdb::{DB, Error};
-use p256::SecretKey;
+use ring::signature::EcdsaKeyPair;
+use secp256k1::SecretKey;
 
 
 const BLOCKS_BUCKET: &str = "blocks";
@@ -85,7 +86,7 @@ impl Blockchain {
         }
     }
 
-    pub fn find_unspent_transactions(&mut self, address: String) -> Vec<Transaction> {
+    pub fn find_unspent_transactions(&mut self, address: Vec<u8>) -> Vec<Transaction> {
         let mut unspent_txs: Vec<Transaction> = Vec::new();
         let mut spent_txos: HashMap<String, Vec<u8>> = HashMap::new();
         let mut current_block = self.next();
@@ -100,13 +101,13 @@ impl Blockchain {
                         }
                     }
             
-                    if out.is_locked_with_key(address.clone().into_bytes()) {
+                    if out.is_locked_with_key(address.clone()) {
                         unspent_txs.push(tx.clone());
                     }
                 }
                 if !tx.is_coinbase() {
                     for input in &tx.vin {
-                        if input.uses_key(address.clone().into_bytes()) {
+                        if input.uses_key(address.clone()) {
                             let in_tx_id = hex::encode(&input.txid);
                             spent_txos.entry(in_tx_id)
                                 .or_insert_with(Vec::new)
@@ -124,12 +125,12 @@ impl Blockchain {
         unspent_txs
     }
 
-    pub fn find_utxo(&mut self,address: &str) -> Vec<TxOutput>{
+    pub fn find_utxo(&mut self,address: Vec<u8>) -> Vec<TxOutput>{
         let mut utxos = Vec::new();
-        let unspent_txs = self.find_unspent_transactions(address.to_string());
+        let unspent_txs = self.find_unspent_transactions(address.clone());
         for tx in unspent_txs{
             for out in tx.vout{
-                if out.is_locked_with_key(address.to_string().into_bytes()){
+                if out.is_locked_with_key(address.clone()){
                     utxos.push(out);
                 }
             }
@@ -137,15 +138,15 @@ impl Blockchain {
         utxos
     }
 
-    pub fn find_spendable_outputs(&mut self, address: &str, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {
+    pub fn find_spendable_outputs(&mut self, address: Vec<u8>, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {
         let mut unspent_outputs:HashMap::<String, Vec<u8>> = HashMap::<String, Vec<u8>>::new();
-        let unspent_txs = self.find_unspent_transactions(address.to_string());
+        let unspent_txs = self.find_unspent_transactions(address.clone());
         let mut accumulated = 0;
         'work:
             for tx in unspent_txs{
                 let id = hex::encode(tx.id);
                 for (out_id,out) in tx.vout.iter().enumerate(){
-                    if out.is_locked_with_key(address.to_string().into_bytes()) && accumulated < amount {
+                    if out.is_locked_with_key(address.clone()) && accumulated < amount {
                         accumulated += out.value;
                         unspent_outputs.entry(id.clone()).or_default().push(out_id as u8);
 
@@ -177,13 +178,22 @@ impl Blockchain {
         
     }
 
-    pub fn sign_transaction(&self,transaction:Transaction, private_key: SecretKey){
+    pub fn sign_transaction(&mut self, mut transaction: Transaction, private_key: &SecretKey) {
         let mut prev_txs = HashMap::new();
-        for vin in transaction.vin{
-            let prev_tx = self.find_transaction(vin.txid);
-            
+    
+        for vin in &transaction.vin {
+            match self.find_transaction(vin.txid.clone()) {
+                Ok(prev_tx) => {
+                    let tx_id_hex = hex::encode(&prev_tx.id);
+                    prev_txs.insert(tx_id_hex, prev_tx);
+                },
+                Err(err) => {
+                    panic!("Error finding previous transaction: {}", err);
+                }
+            }
         }
-        transaction.sign(private_key,prev_txs);
+    
+        transaction.sign(private_key, prev_txs);
     }
 
     

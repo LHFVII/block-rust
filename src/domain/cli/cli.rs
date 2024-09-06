@@ -62,10 +62,10 @@ impl CLI{
         println!("Blockchain created successfully");
     }
     
-    fn get_balance(&mut self,address: String) {
+    fn get_balance(&mut self, address: String) {
         let bc = &mut self.bc.as_mut().unwrap();
         let mut balance = 0;
-        let utxos = bc.find_utxo(&address.to_string());
+        let utxos = bc.find_utxo(address.clone().into_bytes());
         for out in utxos{
             balance += out.value;
         }
@@ -74,7 +74,7 @@ impl CLI{
 
     fn send(&mut self, from: String, to: String, amount:u32){
         let bc = &mut self.bc.as_mut().unwrap();
-        let tx = Transaction::new_utxo_transaction(&from, to, amount,bc);
+        let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
         let mut tx_vec = Vec::new();
         tx_vec.push(tx);
         bc.mine_block(tx_vec);

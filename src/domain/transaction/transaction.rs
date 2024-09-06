@@ -37,7 +37,7 @@ impl Transaction{
         return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
     }
 
-    pub fn new_utxo_transaction(from: &str, to: String, amount: u32,bc: &mut Blockchain) -> Result<Transaction, Box<dyn Error>>{
+    pub fn new_utxo_transaction(from: &str, to: String, amount: u32, bc: &mut Blockchain) -> Result<Transaction, Box<dyn Error>>{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
 
@@ -75,7 +75,7 @@ impl Transaction{
         };
 
         tx.id = tx.hash();
-        bc.sign_transaction(tx, &wallet.private_key);
+        bc.sign_transaction(tx.clone(), &wallet.private_key);
 
         Ok(tx)
     }

@@ -192,7 +192,6 @@ impl Blockchain {
                 }
             }
         }
-    
         transaction.sign(private_key, prev_txs);
     }
 

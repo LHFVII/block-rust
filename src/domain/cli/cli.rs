@@ -2,6 +2,7 @@ use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
+use crate::domain::Wallets;
 
 
 #[derive(Parser)]
@@ -17,9 +18,11 @@ enum Commands {
     CreateBlockchain {
         address: String,
     },
+    CreateWallet,
     GetBalance{
         address: String
     },
+    ListAddresses,
     Send{
         from: String,
         to: String,
@@ -48,7 +51,9 @@ impl CLI{
                     match cli.cmd {
                         Commands::PrintChain => self.print_chain(),
                         Commands::CreateBlockchain { address } => self.create_blockchain(address),
+                        Commands::CreateWallet => self.create_wallet(),
                         Commands::GetBalance { address } => self.get_balance(address),
+                        Commands::ListAddresses => self.list_addresses(),
                         Commands::Send { from, to, amount } => self.send(from, to, amount),
                     }
                 }
@@ -61,6 +66,13 @@ impl CLI{
         self.bc = Some(Blockchain::new(address).unwrap());
         println!("Blockchain created successfully");
     }
+
+    fn create_wallet(&self){
+        let mut wallets = Wallets::new().unwrap();
+        let address = wallets.create_wallet();
+        wallets.save_to_file();
+        println!("Address: {}", address);
+    }
     
     fn get_balance(&mut self, address: String) {
         let bc = &mut self.bc.as_mut().unwrap();
@@ -70,6 +82,15 @@ impl CLI{
             balance += out.value;
         }
         println!("Balance of {}: {}", address, balance);
+    }
+
+    fn list_addresses(&self){
+        let mut wallets = Wallets::new().unwrap();
+        wallets.load_from_file();
+        for wallet in wallets.get_addresses(){
+            println!("Wallet {}", wallet);
+        }
+
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
@@ -102,7 +123,9 @@ impl CLI{
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
     create-blockchain <address> - Adds a block containing the data input.
+    create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
     get-balance <address> - Gets the balance of an address
+    list-address - Lists all available addresses
     print-chain - Shows all blocks that belong to the current blockchain.
     send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);

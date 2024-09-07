@@ -85,8 +85,7 @@ impl CLI{
     }
 
     fn list_addresses(&self){
-        let mut wallets = Wallets::new().unwrap();
-        wallets.load_from_file();
+        let wallets = Wallets::new().unwrap();
         for wallet in wallets.get_addresses(){
             println!("Wallet {}", wallet);
         }

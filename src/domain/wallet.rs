@@ -121,15 +121,19 @@ impl Wallets {
             return Ok(());
         }
         let mut file = fs::File::open(path)?;
+        println!("File opened");
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
+        println!("File read");
         let loaded_wallets: SerializedWallets = bincode::deserialize(&content)?;
+        println!("Wallets loaded");
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
         for wallet in &loaded_wallets.wallets{
+            println!("Quien sabe...");
             let public_key = bytes_to_public_key(&wallet.1.public_key[..]).unwrap();
             let private_key = bytes_to_private_key(&wallet.1.private_key[..]).unwrap();
-            
             let current_wallet = Wallet{private_key:private_key, public_key: public_key.clone()};
+            println!("{}",public_key.clone().to_string());
             wallets.insert(public_key.to_string(), current_wallet);
         }
         self.wallets = wallets;

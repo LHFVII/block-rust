@@ -37,7 +37,16 @@ pub struct CLI {
 
 impl CLI{
     pub fn new() -> Self{
-        CLI{bc: None}
+        let bc = Blockchain::new();
+        let mut final_bc;
+        match bc{
+            Ok(blockchain) => final_bc = Some(blockchain),
+            Err(e) => {
+                println!("No blockchain created, run the create-blockchain command first!");
+                final_bc = None
+            }
+        }
+        CLI{bc: final_bc}
     }
 
     pub fn run(&mut self) {
@@ -65,10 +74,7 @@ impl CLI{
     }
 
     fn create_blockchain(&mut self, address: String) {
-        if self.bc.is_some(){
-            println!("Blockchain has already been created")
-        }
-        self.bc = Some(Blockchain::new(address).unwrap());
+        self.bc = Some(Blockchain::create_blockchain(address).unwrap());
     }
 
     fn create_wallet(&self){

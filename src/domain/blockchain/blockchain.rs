@@ -16,15 +16,13 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(address: String) -> Result<Self, Box<dyn Error>> {
-        if Path::new(DB_PATH).exists() {
-            println!("Blockchain already exists.");
-            return Err("Blockchain already exists.".into())
+    pub fn new() -> Result<Self, Box<dyn Error>> {
+        if !Path::new(DB_PATH).exists() {
+            return Err("Blockchain does not exist.".into())
         }
         let db = DB::open(DB_PATH)?;
         let tip = {
             let tx = db.tx(true)?;
-    
             let result = match tx.get_bucket(BLOCKS_BUCKET) {
                 Ok(bucket) => {
                     bucket.get(b"l")
@@ -32,21 +30,10 @@ impl Blockchain {
                         .unwrap_or_else(Vec::new)
                 },
                 Err(_) => {
-                    let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
-                    let coinbase_tx = Transaction::new_coinbase_tx(address,String::from(GENESIS_COINBASE_DATA));
-                    let genesis = Block::new(vec![coinbase_tx], Vec::new());
-                    let genesis_hash = genesis.hash.clone();
-                    
-                    let block_bytes = rmp_serde::to_vec(&genesis)
-                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
-                    
-                    block_bucket.put(genesis.hash, block_bytes)?;
-                    block_bucket.put(b"l".to_vec(), genesis_hash.clone())?;
-                    
-                    genesis_hash
+                    println!("Error: Tip not found");
+                    return Err("Tip not found".into())
                 }
             };
-    
             tx.commit()?;
             result
         };
@@ -56,6 +43,29 @@ impl Blockchain {
             current_hash: tip,
             db 
         })
+    }
+
+    pub fn create_blockchain(address: String) -> Result<Self, Box<dyn Error>>{
+        if Path::new(DB_PATH).exists() {
+            return Err("Blockchain already exists.".into())
+        }
+        let db = DB::open(DB_PATH)?;
+        let tx = db.tx(true)?;
+        let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
+        let coinbase_tx = Transaction::new_coinbase_tx(address,String::from(GENESIS_COINBASE_DATA));
+        let genesis = Block::new(vec![coinbase_tx], Vec::new());
+        let genesis_hash = genesis.hash.clone();
+        let block_bytes = rmp_serde::to_vec(&genesis)
+            .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+        block_bucket.put(genesis.hash, block_bytes)?;
+        block_bucket.put(b"l".to_vec(), genesis_hash.clone())?;
+        
+        Ok(Blockchain{
+            tip: genesis_hash.clone(),
+            current_hash: genesis_hash,
+            db: db.clone(),
+        })
+        
     }
 
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Box<dyn Error>> {

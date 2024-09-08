@@ -1,3 +1,5 @@
+use std::default;
+
 use clap::{command,Parser, Subcommand};
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
@@ -62,7 +64,7 @@ impl CLI{
         }
     }
 
-    fn create_blockchain(&mut self,address: String) {
+    fn create_blockchain(&mut self, address: String) {
         self.bc = Some(Blockchain::new(address).unwrap());
         println!("Blockchain created successfully");
     }
@@ -70,7 +72,7 @@ impl CLI{
     fn create_wallet(&self){
         let mut wallets = Wallets::new().unwrap();
         let address = wallets.create_wallet();
-        wallets.save_to_file();
+        let _ = wallets.save_to_file();
         println!("Address: {}", address);
     }
     
@@ -121,12 +123,12 @@ impl CLI{
 
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
-    create-blockchain <address> - Adds a block containing the data input.
-    create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
-    get-balance <address> - Gets the balance of an address
-    list-address - Lists all available addresses
-    print-chain - Shows all blocks that belong to the current blockchain.
-    send <from> <to> <amount> - Sends an amount of coins from an address to another
+    1) Create-blockchain <address> - Adds a block containing the data input.
+    2) Create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    3) Get-balance <address> - Gets the balance of an address
+    4) List-addresses - Lists all available addresses
+    5) Print-chain - Shows all blocks that belong to the current blockchain.
+    6) Send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);
     }
     

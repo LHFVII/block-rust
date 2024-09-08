@@ -104,9 +104,8 @@ impl Wallets {
         let loaded_wallets: Wallets = bincode::deserialize(&content)?;
         
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
-        for (key,wallet) in &loaded_wallets.wallets{
+        for (_key,wallet) in &loaded_wallets.wallets{
             let current_wallet = Wallet{private_key:wallet.private_key, public_key: wallet.public_key};
-            println!("{}",wallet.public_key.to_string());
             wallets.insert(wallet.public_key.to_string(), current_wallet);
         }
         self.wallets = wallets;

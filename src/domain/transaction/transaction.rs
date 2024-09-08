@@ -1,14 +1,9 @@
 use std::collections::HashMap;
-use ring::signature::{EcdsaKeyPair, ECDSA_P256_SHA256_ASN1_SIGNING};
-use ring::rand::SystemRandom;
 use secp256k1::{Message, Secp256k1, SecretKey};
-use serde::{de::value, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
-
-
 use crate::domain::{hash_pubkey, Blockchain, Wallets};
-
 use super::{TxInput, TxOutput};
 
 const SUBSIDY:u32 = 10;
@@ -28,7 +23,7 @@ impl Transaction{
         }
         let txin = TxInput{txid: Vec::new(),vout:0,signature:None,pubkey: Some(data.into_bytes()) };
         let txout = TxOutput::new(SUBSIDY, to);
-        let mut tx = Transaction{id: Vec::new(),vin: vec![txin], vout: vec![txout]};
+        let tx = Transaction{id: Vec::new(),vin: vec![txin], vout: vec![txout]};
         tx.hash();
         return tx
     }

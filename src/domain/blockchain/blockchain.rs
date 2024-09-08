@@ -1,9 +1,7 @@
 use std::collections::HashMap;
-
 use crate::domain::{Transaction, Block, TxOutput};
 use jammdb::{DB, Error};
-use ring::signature::EcdsaKeyPair;
-use secp256k1::SecretKey;
+use secp256k1::{SecretKey};
 
 
 const BLOCKS_BUCKET: &str = "blocks";

@@ -1,4 +1,4 @@
-use serde::{de::value, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::domain::hash_pubkey;
 

@@ -26,9 +26,6 @@ pub struct Wallet {
 impl Wallet {
     pub fn new() -> Self {
         let secp = Secp256k1::new();
-
-        // Generate a random secret key
-        let secp = Secp256k1::new();
         let (secret_key, public_key) = secp.generate_keypair(&mut OsRng);
 
         Wallet {
@@ -118,8 +115,7 @@ impl Wallets {
     }
 
     pub fn save_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
-        let serializedWallet: HashMap<String,Wallet> = HashMap::new();
-        let content = bincode::serialize(&serializedWallet)?;
+        let content = bincode::serialize(&self)?;
         let mut file = fs::File::create(WALLET_FILE)?;
         file.write_all(&content)?;
         Ok(())

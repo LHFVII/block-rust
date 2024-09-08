@@ -65,8 +65,10 @@ impl CLI{
     }
 
     fn create_blockchain(&mut self, address: String) {
+        if self.bc.is_some(){
+            println!("Blockchain has already been created")
+        }
         self.bc = Some(Blockchain::new(address).unwrap());
-        println!("Blockchain created successfully");
     }
 
     fn create_wallet(&self){
@@ -123,12 +125,12 @@ impl CLI{
 
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
-    1) Create-blockchain <address> - Adds a block containing the data input.
-    2) Create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
-    3) Get-balance <address> - Gets the balance of an address
-    4) List-addresses - Lists all available addresses
-    5) Print-chain - Shows all blocks that belong to the current blockchain.
-    6) Send <from> <to> <amount> - Sends an amount of coins from an address to another
+    1) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
+    2) create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    3) get-balance <address> - Gets the balance of an address
+    4) list-addresses - Lists all available addresses
+    5) print-chain - Shows all blocks that belong to the current blockchain.
+    6) send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);
     }
     

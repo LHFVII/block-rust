@@ -1,11 +1,13 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, path::Path};
 use crate::domain::{Transaction, Block, TxOutput};
-use jammdb::{DB, Error};
+use jammdb::{DB};
+use std::error::Error;
 use secp256k1::{SecretKey};
 
 
 const BLOCKS_BUCKET: &str = "blocks";
 const GENESIS_COINBASE_DATA: &str = "ALPHA";
+const DB_PATH: &str = "blockchain.db";
 
 pub struct Blockchain {
     pub tip: Vec<u8>,
@@ -14,8 +16,12 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new(address: String) -> Result<Self, Error> {
-        let db = DB::open("blockchain.db")?;
+    pub fn new(address: String) -> Result<Self, Box<dyn Error>> {
+        if Path::new(DB_PATH).exists() {
+            println!("Blockchain already exists.");
+            return Err("Blockchain already exists.".into())
+        }
+        let db = DB::open(DB_PATH)?;
         let tip = {
             let tx = db.tx(true)?;
     
@@ -32,7 +38,7 @@ impl Blockchain {
                     let genesis_hash = genesis.hash.clone();
                     
                     let block_bytes = rmp_serde::to_vec(&genesis)
-                        .map_err(|_| Error::IncompatibleValue)?;
+                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
                     
                     block_bucket.put(genesis.hash, block_bytes)?;
                     block_bucket.put(b"l".to_vec(), genesis_hash.clone())?;
@@ -52,15 +58,15 @@ impl Blockchain {
         })
     }
 
-    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Error> {
+    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Box<dyn Error>> {
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
         if let Some(data) = bucket.get(b"l") {
             let block: Block = rmp_serde::from_slice(data.kv().value())
-                .map_err(|e| Error::IncompatibleValue)?;
+                .map_err(|e| Box::new(e) as Box<dyn Error>)?;
             let new_block = Block::new(transactions, block.hash);
             let block_bytes = rmp_serde::to_vec(&new_block)
-                        .map_err(|_| Error::IncompatibleValue)?;
+                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
             bucket.put(new_block.hash.clone(), block_bytes)?;
             bucket.put(b"l".to_vec(), new_block.hash)?;
         }
@@ -158,7 +164,7 @@ impl Blockchain {
         (1,HashMap::<String, Vec<u8>>::new())
     }
 
-    pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Error>{
+    pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
         let mut current_block = self.next();
     
         while let Some(block) = current_block {
@@ -172,8 +178,7 @@ impl Blockchain {
             }
             current_block = self.next();
         }
-        return Err(Error::IncompatibleValue)
-        
+        return Err("Transaction not found".into())
     }
 
     pub fn sign_transaction(&mut self, mut transaction: Transaction, private_key: &SecretKey) {
@@ -191,9 +196,7 @@ impl Blockchain {
             }
         }
         transaction.sign(private_key, prev_txs);
-    }
-
-    
+    }  
 }
 
 

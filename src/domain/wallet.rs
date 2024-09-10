@@ -62,7 +62,7 @@ pub fn checksum(payload: Vec<u8>)-> Vec<u8>{
 }
 #[derive(Serialize, Deserialize)]
 pub struct Wallets {
-    wallets: HashMap<String, Wallet>,
+    pub wallets: HashMap<String, Wallet>,
 }
 
 impl Wallets {
@@ -74,13 +74,13 @@ impl Wallets {
         Ok(wallets)
     }
 
-    pub fn create_wallet(&mut self) -> String {
+    pub fn create_wallet(&mut self) -> Vec<u8> {
         let wallet = Wallet::new();
         let address = wallet.get_address();
         let stringified_address = String::from_utf8_lossy(&address).to_string();
         println!("Stringified address is {}",stringified_address.clone());
         self.wallets.insert(stringified_address.clone(), wallet);
-        stringified_address
+        address
     }
 
     pub fn get_addresses(&self) -> Vec<String> {
@@ -106,7 +106,7 @@ impl Wallets {
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
         for (_key,wallet) in &loaded_wallets.wallets{
             let current_wallet = Wallet{private_key:wallet.private_key, public_key: wallet.public_key};
-            wallets.insert(wallet.public_key.to_string(), current_wallet);
+            wallets.insert(String::from_utf8_lossy(&wallet.get_address()).to_string(), current_wallet);
         }
         self.wallets = wallets;
 

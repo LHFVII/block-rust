@@ -1,6 +1,7 @@
 use std::default;
 
 use clap::{command,Parser, Subcommand};
+use secp256k1::hashes::hex::DisplayHex;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
@@ -37,7 +38,16 @@ pub struct CLI {
 
 impl CLI{
     pub fn new() -> Self{
-        CLI{bc: None}
+        let bc = Blockchain::new();
+        let mut final_bc;
+        match bc{
+            Ok(blockchain) => final_bc = Some(blockchain),
+            Err(e) => {
+                println!("No blockchain created, run the create-blockchain command first!");
+                final_bc = None
+            }
+        }
+        CLI{bc: final_bc}
     }
 
     pub fn run(&mut self) {
@@ -65,15 +75,14 @@ impl CLI{
     }
 
     fn create_blockchain(&mut self, address: String) {
-        self.bc = Some(Blockchain::new(address).unwrap());
-        println!("Blockchain created successfully");
+        self.bc = Some(Blockchain::create_blockchain(address).unwrap());
     }
 
     fn create_wallet(&self){
         let mut wallets = Wallets::new().unwrap();
         let address = wallets.create_wallet();
         let _ = wallets.save_to_file();
-        println!("Address: {}", address);
+        println!("Address: {:?}", address);
     }
     
     fn get_balance(&mut self, address: String) {
@@ -88,10 +97,9 @@ impl CLI{
 
     fn list_addresses(&self){
         let wallets = Wallets::new().unwrap();
-        for wallet in wallets.get_addresses(){
+        for wallet in wallets.wallets.into_keys(){
             println!("Wallet {}", wallet);
         }
-
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
@@ -104,11 +112,13 @@ impl CLI{
     }
     
     fn print_chain(&mut self) {
-        println!("printing...");
         let bc = &mut self.bc.as_mut().unwrap();
+        println!("{}", String::from_utf8_lossy(&bc.current_hash));
+        println!("{}", bc.tip.to_lower_hex_string());
         let mut current_block = bc.next();
-    
+
         while let Some(block) = current_block {
+
             println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
             println!("Hash: {}", hex::encode(&block.hash));
             ProofOfWork::new(block.clone());
@@ -123,12 +133,12 @@ impl CLI{
 
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
-    1) Create-blockchain <address> - Adds a block containing the data input.
-    2) Create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
-    3) Get-balance <address> - Gets the balance of an address
-    4) List-addresses - Lists all available addresses
-    5) Print-chain - Shows all blocks that belong to the current blockchain.
-    6) Send <from> <to> <amount> - Sends an amount of coins from an address to another
+    1) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
+    2) create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    3) get-balance <address> - Gets the balance of an address
+    4) list-addresses - Lists all available addresses
+    5) print-chain - Shows all blocks that belong to the current blockchain.
+    6) send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);
     }
     

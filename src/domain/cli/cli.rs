@@ -1,6 +1,7 @@
 use std::default;
 
 use clap::{command,Parser, Subcommand};
+use secp256k1::hashes::hex::DisplayHex;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
@@ -81,7 +82,7 @@ impl CLI{
         let mut wallets = Wallets::new().unwrap();
         let address = wallets.create_wallet();
         let _ = wallets.save_to_file();
-        println!("Address: {}", address);
+        println!("Address: {:?}", address);
     }
     
     fn get_balance(&mut self, address: String) {
@@ -96,10 +97,9 @@ impl CLI{
 
     fn list_addresses(&self){
         let wallets = Wallets::new().unwrap();
-        for wallet in wallets.get_addresses(){
+        for wallet in wallets.wallets.into_keys(){
             println!("Wallet {}", wallet);
         }
-
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
@@ -112,11 +112,13 @@ impl CLI{
     }
     
     fn print_chain(&mut self) {
-        println!("printing...");
         let bc = &mut self.bc.as_mut().unwrap();
+        println!("{}", String::from_utf8_lossy(&bc.current_hash));
+        println!("{}", bc.tip.to_lower_hex_string());
         let mut current_block = bc.next();
-    
+
         while let Some(block) = current_block {
+
             println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
             println!("Hash: {}", hex::encode(&block.hash));
             ProofOfWork::new(block.clone());

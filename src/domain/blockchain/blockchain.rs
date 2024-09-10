@@ -17,6 +17,7 @@ pub struct Blockchain {
 
 impl Blockchain {
     pub fn new() -> Result<Self, Box<dyn Error>> {
+        println!("{}",Path::new(DB_PATH).exists());
         if !Path::new(DB_PATH).exists() {
             return Err("Blockchain does not exist.".into())
         }
@@ -25,7 +26,7 @@ impl Blockchain {
             let tx = db.tx(true)?;
             let result = match tx.get_bucket(BLOCKS_BUCKET) {
                 Ok(bucket) => {
-                    bucket.get(b"l")
+                    bucket.get("tip")
                         .map(|data| data.kv().value().to_vec())
                         .unwrap_or_else(Vec::new)
                 },
@@ -58,7 +59,7 @@ impl Blockchain {
         let block_bytes = rmp_serde::to_vec(&genesis)
             .map_err(|e| Box::new(e) as Box<dyn Error>)?;
         block_bucket.put(genesis.hash, block_bytes)?;
-        block_bucket.put(b"l".to_vec(), genesis_hash.clone())?;
+        block_bucket.put("tip", genesis_hash.clone())?;
         
         Ok(Blockchain{
             tip: genesis_hash.clone(),
@@ -78,13 +79,14 @@ impl Blockchain {
             let block_bytes = rmp_serde::to_vec(&new_block)
                         .map_err(|e| Box::new(e) as Box<dyn Error>)?;
             bucket.put(new_block.hash.clone(), block_bytes)?;
-            bucket.put(b"l".to_vec(), new_block.hash)?;
+            bucket.put("tip", new_block.hash)?;
         }
         tx.commit()?;
         Ok(true)
     }
 
     pub fn next(&mut self) -> Option<Block> {
+        println!("{}",self.current_hash.is_empty());
         if self.current_hash.is_empty() {
             return None;
         }
@@ -92,6 +94,7 @@ impl Blockchain {
         let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
         if let Some(data) = bucket.get(&self.current_hash) {
             let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
+            println!("Prev block hash: {:?}", block.prev_block_hash.clone());
             self.current_hash = block.prev_block_hash.clone();
             Some(block)
         } else {

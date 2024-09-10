@@ -19,10 +19,8 @@ impl TxOutput{
     }
 
     pub fn lock(&mut self,address: Vec<u8>){
-        let mut pubkey_hash = bs58::decode(address).into_vec().ok().unwrap();
-        pubkey_hash = pubkey_hash[1..=pubkey_hash.len()-4].to_vec();
-        self.pubkey_hash = pubkey_hash;
-
+        let decoded = bs58::decode(address).into_vec().expect("Failed to decode address");
+        self.pubkey_hash = decoded[1..21].to_vec();
     }
 }
 

@@ -75,7 +75,16 @@ impl CLI{
     }
 
     fn create_blockchain(&mut self, address: String) {
-        self.bc = Some(Blockchain::create_blockchain(address).unwrap());
+        let bc = Blockchain::create_blockchain(address);
+        let mut final_bc;
+        match bc{
+            Ok(blockchain) => final_bc = Some(blockchain),
+            Err(e) => {
+                println!("No blockchain created, re-run the create-blockchain command!");
+                final_bc = None
+            }
+        }
+        self.bc = final_bc;
     }
 
     fn create_wallet(&self){
@@ -112,8 +121,8 @@ impl CLI{
     }
     
     fn print_chain(&mut self) {
-        let bc = &mut self.bc.as_mut().unwrap();
-        println!("{}", String::from_utf8_lossy(&bc.current_hash));
+        let bc = self.bc.as_mut().unwrap();
+        println!("{}", &bc.current_hash.to_lower_hex_string());
         println!("{}", bc.tip.to_lower_hex_string());
         let mut current_block = bc.next();
 

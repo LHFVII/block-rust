@@ -17,7 +17,6 @@ pub struct Blockchain {
 
 impl Blockchain {
     pub fn new() -> Result<Self, Box<dyn Error>> {
-        println!("{}",Path::new(DB_PATH).exists());
         if !Path::new(DB_PATH).exists() {
             return Err("Blockchain does not exist.".into())
         }
@@ -31,8 +30,8 @@ impl Blockchain {
                         .unwrap_or_else(Vec::new)
                 },
                 Err(_) => {
-                    println!("Error: Tip not found");
-                    return Err("Tip not found".into())
+                    println!("Error: Bucket not found");
+                    return Err("Bucket not found".into())
                 }
             };
             tx.commit()?;
@@ -60,7 +59,7 @@ impl Blockchain {
             .map_err(|e| Box::new(e) as Box<dyn Error>)?;
         block_bucket.put(genesis.hash, block_bytes)?;
         block_bucket.put("tip", genesis_hash.clone())?;
-        
+        tx.commit()?;
         Ok(Blockchain{
             tip: genesis_hash.clone(),
             current_hash: genesis_hash,
@@ -86,7 +85,6 @@ impl Blockchain {
     }
 
     pub fn next(&mut self) -> Option<Block> {
-        println!("{}",self.current_hash.is_empty());
         if self.current_hash.is_empty() {
             return None;
         }
@@ -94,7 +92,6 @@ impl Blockchain {
         let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
         if let Some(data) = bucket.get(&self.current_hash) {
             let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
-            println!("Prev block hash: {:?}", block.prev_block_hash.clone());
             self.current_hash = block.prev_block_hash.clone();
             Some(block)
         } else {

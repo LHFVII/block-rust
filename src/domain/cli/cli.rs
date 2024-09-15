@@ -122,17 +122,12 @@ impl CLI{
     
     fn print_chain(&mut self) {
         let bc = self.bc.as_mut().unwrap();
-        println!("{}", &bc.current_hash.to_lower_hex_string());
-        println!("{}", bc.tip.to_lower_hex_string());
         let mut current_block = bc.next();
-
         while let Some(block) = current_block {
-
             println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
             println!("Hash: {}", hex::encode(&block.hash));
             ProofOfWork::new(block.clone());
             println!();
-    
             if block.prev_block_hash.is_empty() {
                 break;
             }

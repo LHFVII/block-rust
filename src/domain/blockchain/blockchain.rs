@@ -1,5 +1,5 @@
 use std::{collections::HashMap, path::Path};
-use crate::domain::{Transaction, Block, TxOutput};
+use crate::domain::{Block, Transaction, TxOutput, TxOutputs};
 use jammdb::{DB};
 use std::error::Error;
 use secp256k1::{SecretKey};
@@ -139,17 +139,17 @@ impl Blockchain {
         unspent_txs
     }
 
-    pub fn find_utxo(&mut self,address: Vec<u8>) -> Vec<TxOutput>{
-        let mut utxos = Vec::new();
+    pub fn find_utxo(&mut self) -> HashMap<&str,TxOutputs>{
+        let mut utxo = HashMap::new();
         let unspent_txs = self.find_unspent_transactions(address.clone());
         for tx in unspent_txs{
             for out in tx.vout{
                 if out.is_locked_with_key(address.clone()){
-                    utxos.push(out);
+                    utxo.push(out);
                 }
             }
         }
-        utxos
+        utxo
     }
 
     pub fn find_spendable_outputs(&mut self, address: Vec<u8>, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {

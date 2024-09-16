@@ -112,8 +112,9 @@ impl CLI{
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
-        let bc = &mut self.bc.as_mut().unwrap();
+        let bc = self.bc.as_mut().unwrap();
         let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
+        
         let mut tx_vec = Vec::new();
         tx_vec.push(tx);
         bc.mine_block(tx_vec);

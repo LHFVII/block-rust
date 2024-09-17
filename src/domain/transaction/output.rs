@@ -66,6 +66,14 @@ impl UTXOSet{
         tx.commit()?;
     }
     pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u64) -> (u64, HashMap<&str,Vec<u64>>){
+        let unspent_outputs: HashMap<&str,Vec<u64>> = HashMap::new();
+        let accumulated: u64 = 0;
+        let db = self.blockchain.db.clone();
+        
+        
+
+
+        return (0, unspent_outputs);
 
     }
 

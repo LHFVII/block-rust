@@ -143,7 +143,8 @@ impl CLI{
     3) get-balance <address> - Gets the balance of an address
     4) list-addresses - Lists all available addresses
     5) print-chain - Shows all blocks that belong to the current blockchain.
-    6) send <from> <to> <amount> - Sends an amount of coins from an address to another
+    6) reindex-utxo - Rebuild the UTXO set
+    7) send <from> <to> <amount> - Sends an amount of coins from an address to another
     "#);
     }
     

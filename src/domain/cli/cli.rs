@@ -5,6 +5,7 @@ use secp256k1::hashes::hex::DisplayHex;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
+use crate::domain::UTXOSet;
 use crate::domain::Wallets;
 
 
@@ -95,9 +96,11 @@ impl CLI{
     }
     
     fn get_balance(&mut self, address: String) {
-        let bc = &mut self.bc.as_mut().unwrap();
+        let bc: Blockchain = self.bc.unwrap();
+        
+        let utxo_set = UTXOSet{blockchain: bc};
         let mut balance = 0;
-        let utxos = bc.find_utxo(address.clone().into_bytes());
+        let utxos = utxo_set.find_utxo(pubkey_hash);
         for out in utxos{
             balance += out.value;
         }

@@ -1,3 +1,5 @@
+use std::io::Read;
+
 use sha2::{Sha256,Digest};
 
 pub struct MerkleTree{
@@ -15,20 +17,24 @@ pub struct MerkleNode{
 
 impl MerkleTree{
     pub fn new(mut data: Vec<Vec<u8>>) -> Self{
+        let cloned_data = data.clone();
         let mut nodes: Vec<Node> = Vec::new();
         if data.len() % 2 != 0{
-            data.push(data[data.len()-1]);
+            let new_data = data.get(data.len()-1).unwrap().clone();
+            data.push(new_data);
         }
         for datum in data{
             let node = MerkleNode::new(None, None, datum);
             nodes.push(Some(Box::new(node)));
         }
         let mut i: usize = 0;
-        while i < (data.len()/2){
+        while i < (cloned_data.len()/2){
             let mut new_level: Vec<Node> = Vec::new();
             let mut j = 0;
             while j < nodes.len(){
-                let node = MerkleNode::new(nodes.get(j), nodes.get(j+1), Vec::new());
+                let current_left = nodes.get_mut(j).unwrap().take();
+                let current_right = nodes.get_mut(j+1).unwrap().take();
+                let node = MerkleNode::new(current_left, current_right, Vec::new());
                 new_level.push(Some(Box::new(node)));
                 j +=2
             }

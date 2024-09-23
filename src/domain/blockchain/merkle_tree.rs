@@ -28,7 +28,7 @@ impl MerkleTree{
             let mut new_level: Vec<Node> = Vec::new();
             let mut j = 0;
             while j < nodes.len(){
-                let node = MerkleNode::new(nodes[j], nodes[j+1], Vec::new());
+                let node = MerkleNode::new(nodes.get(j), nodes.get(j+1), Vec::new());
                 new_level.push(Some(Box::new(node)));
                 j +=2
             }

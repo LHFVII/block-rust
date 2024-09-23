@@ -139,13 +139,36 @@ impl Blockchain {
         unspent_txs
     }
 
-    pub fn find_utxo(&mut self) -> HashMap<&str,TxOutputs>{
-        let mut utxo = HashMap::new();
-        let unspent_txs = self.find_unspent_transactions(address.clone());
-        for tx in unspent_txs{
-            for out in tx.vout{
-                if out.is_locked_with_key(address.clone()){
-                    utxo.push(out);
+    pub fn find_utxo(&mut self) -> HashMap<String,TxOutputs>{
+        let mut utxo: HashMap<String, TxOutputs> = HashMap::new();
+        let mut spent_txs: HashMap<String, Vec<u8>> = HashMap::new();
+        while let Some(block) = self.next() {
+            for tx in block.transactions{
+                let tx_id = hex::encode(tx.clone().id);
+                'outputs: 
+                    for (out_idx, out) in tx.vout.iter().enumerate() {
+                    if let Some(spent_out_indices) = spent_txs.get(&tx_id) {
+                        if spent_out_indices.contains(&(out_idx as u8)) {
+                            continue 'outputs;
+                        }
+                    }
+        
+                    utxo.entry(tx_id.clone())
+                        .or_insert(TxOutputs { outputs: Vec::new() })
+                        .outputs
+                        .push(out.clone());
+                    }
+                    if tx.is_coinbase() == false{
+                        for vin in tx.vin {
+                            let in_tx_id = hex::encode(&vin.txid);
+                            spent_txs
+                                .entry(in_tx_id)
+                                .or_insert(Vec::new())
+                                .push(vin.vout);
+                        }
+                    }
+                if(block.prev_block_hash.is_empty()){
+                    break
                 }
             }
         }
@@ -175,6 +198,7 @@ impl Blockchain {
     }
 
     pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
+
         let mut current_block = self.next();
     
         while let Some(block) = current_block {
@@ -183,6 +207,7 @@ impl Blockchain {
                     return Ok(tx)
                 }
             }
+            
             if block.prev_block_hash.is_empty() {
                 break;
             }

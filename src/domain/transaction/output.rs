@@ -27,22 +27,10 @@ impl TxOutput{
         self.pubkey_hash = decoded[1..21].to_vec();
     }
 }
-
+#[derive(Clone)]
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TxOutputs{
     pub outputs: Vec<TxOutput>
-}
-
-impl TxOutputs{
-    pub fn serialize(&self) -> Vec<u8>{
-        bincode::deserialize(self).unwrap()
-        
-    }
-}
-
-fn deserialize_outputs(data: Vec<u8>) -> TxOutputs {
-	let encoded = bincode::deserialize(&data).unwrap();
-    TxOutputs{outputs: encoded}
-
 }
 
 // Acts as a cache that is built from all blockchain transactions
@@ -53,18 +41,22 @@ pub struct UTXOSet{
 const UTXO_BUCKET: &str = "UTXOSet";
 
 impl UTXOSet{
-    pub fn reindex(&mut self) -> Result<Self, Box<dyn Error>>{
+    pub fn reindex(&mut self) -> Result<(), Box<dyn Error>>{
         let db = self.blockchain.db.clone();
         let tx = db.tx(true)?;
         tx.delete_bucket(UTXO_BUCKET);
         let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
         let utxo = self.blockchain.find_utxo();
-        for (tx_id, outs) in utxo.into_iter().enumerate(){
-            let key = decode(tx_id);
-            block_bucket.put(key, outs.serialize())
+        for (tx_id, outs) in utxo{
+            let key = decode(tx_id).unwrap();
+            let outs_bytes = rmp_serde::to_vec(&outs)
+                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+            block_bucket.put(key, outs_bytes);
         }
         tx.commit()?;
+        Ok(())
     }
+
     pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u64) -> (u64, HashMap<&str,Vec<u64>>){
         let unspent_outputs: HashMap<&str,Vec<u64>> = HashMap::new();
         let accumulated: u64 = 0;
@@ -81,37 +73,41 @@ impl UTXOSet{
         Vec::new()
     }
 
-    pub fn update(&mut self, block: &Block){
-        let db = self.blockchain.db;
-        let tx = db.tx(true)?;
-        let result = match tx.get_bucket(UTXO_BUCKET) {
+    pub fn update(&mut self, block: &Block) -> Result<(),Box<dyn Error>>{
+        let db = self.blockchain.db.clone();
+        let tx = db.tx(true).unwrap();
+        match tx.get_bucket(UTXO_BUCKET) {
             Ok(bucket) => {
-                for tx in block.transactions{
+                for tx in block.transactions.clone(){
                     if !tx.is_coinbase(){
                         for vin in tx.vin{
-                            let updated_outs = TxOutputs{outputs: Vec::new()};
-                            let out_bytes = bucket.get(vin.txid);
-                            let outs = deserialize_outputs(out_bytes);
-
-                            for (out_idx,out) in outs.outputs.into_iter().enumerate(){
-                                if out_idx != vin.vout{
+                            let mut updated_outs = TxOutputs{outputs: Vec::new()};
+                            if let Some(data) = bucket.get(vin.txid.clone()) {
+                                let outs: TxOutputs = rmp_serde::from_slice(data.kv().value())?;
+                                for (out_idx,out) in outs.outputs.into_iter().enumerate(){
+                                if out_idx != vin.vout.into(){
                                     updated_outs.outputs.push(out);
                                 }
                             }
-
                             if updated_outs.outputs.len() == 0{
                                 bucket.delete(vin.txid);
                             }else{
-                                bucket.put(vin.txid, updated_outs.serialize());
-
+                                let updated_outs_bytes = rmp_serde::to_vec(&updated_outs)
+                                    .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+                                bucket.put(vin.txid, updated_outs_bytes);
+                            }                               
+                            } else {
+                                println!("Nothing was found");
                             }
                         }
                     }
-                    let new_outputs = TxOutputs{outputs: Vec::new()};
+                    let mut new_outputs = TxOutputs{outputs: Vec::new()};
                     for out in tx.vout{
                         new_outputs.outputs.push(out);
                     }
-                    bucket.put(tx.id, new_outputs.serialize());
+                    let new_outputs_bytes = rmp_serde::to_vec(&new_outputs)
+                                    .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+                    bucket.put(tx.id, new_outputs_bytes);
                 }
                 
             },
@@ -119,8 +115,8 @@ impl UTXOSet{
                 println!("Error: Bucket not found");
             }
         };
-        tx.commit()?;
-
+        tx.commit();
+        Ok(())
     }
 }
 

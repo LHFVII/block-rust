@@ -126,7 +126,7 @@ pub fn validate_address(address: &str) -> bool{
     let actual_checksum = &pubkey_hash[(pubkey_hash.len()-4)..];
     let mut version = vec![pubkey_hash[0]];
     let pubkey_hash_sliced = &pubkey_hash[1..(pubkey_hash.len()-4)];
-    let target_checksum = checksum(pubkey_hash_sliced);
-
-    return true;
+    version.extend_from_slice(pubkey_hash_sliced);
+    let target_checksum = checksum(version);
+    actual_checksum == target_checksum
 }

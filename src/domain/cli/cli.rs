@@ -100,7 +100,7 @@ impl CLI{
         let mut balance = 0;
         let decoded = bs58::decode(address.clone()).into_vec().unwrap();
         let pubkey_hash = decoded[1..decoded.len() - 4].to_vec();
-        let utxos = utxo_set.find_utxo(pubkey_hash);
+        let utxos = utxo_set.find_utxo(pubkey_hash).unwrap();
         for out in utxos{
             balance += out.value;
         }

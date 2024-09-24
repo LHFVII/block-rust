@@ -39,7 +39,7 @@ pub struct UTXOSet{
     pub blockchain: Blockchain
 }
 
-const UTXO_BUCKET: &str = "UTXOSet";
+const UTXO_BUCKET: &str = "chainstate";
 
 impl UTXOSet{
     pub fn reindex(&mut self) -> Result<(), Box<dyn Error>>{
@@ -58,28 +58,49 @@ impl UTXOSet{
         Ok(())
     }
 
-    pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u64) -> Result<(u64, HashMap<&str,Vec<u64>>),Box<dyn Error>>{
-        let unspent_outputs: HashMap<&str,Vec<u64>> = HashMap::new();
-        let accumulated: u64 = 0;
+    pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u32) -> Result<(u32, HashMap<String,u32>),Box<dyn Error>>{
+        let mut unspent_outputs: HashMap<String,u32> = HashMap::new();
+        let mut accumulated: u32 = 0;
         let db = self.blockchain.db.clone();
         let tx = db.tx(true)?;
         let bucket = tx.get_bucket(UTXO_BUCKET)?;
         for data in bucket.cursor() {
-            match data {
+            let result = match data {
                 Data::Bucket(b) => println!("found a bucket with the name {:?}", b.name()),
                 Data::KeyValue(data) => {
-                    let tx_out: TxOutput = rmp_serde::from_slice(data.value()).ok()?;
-                    let tx_id = hex::encode(tx_out.pubkey_hash);
+                    let tx_outs: TxOutputs = rmp_serde::from_slice(data.value()).ok().ok_or_else(|| format!("Tx not found!"))?;
+                    let tx_id = hex::encode(data.key());
+                    for (out_idx, out) in tx_outs.outputs.into_iter().enumerate(){
+                        if out.is_locked_with_key(pubkey_hash.clone()) && accumulated < amount{
+                            accumulated += out.value;
+                            unspent_outputs.insert(tx_id.clone(), out_idx as u32);
+                        }
+                    }
                 }
-            }
+            };
         }
-
-        return Ok((0, unspent_outputs));
-
+        return Ok((accumulated, unspent_outputs));
     }
 
-    pub fn find_utxo(&self, pubkey_hash: Vec<u8>) -> Vec<TxOutput>{
-        Vec::new()
+    pub fn find_utxo(&self, pubkey_hash: Vec<u8>) -> Result<Vec<TxOutput>,Box<dyn Error>>{
+        let mut utxos: Vec<TxOutput> = Vec::new();
+        let db = self.blockchain.db.clone();
+        let tx = db.tx(true)?;
+        let bucket = tx.get_bucket(UTXO_BUCKET)?;
+        for data in bucket.cursor() {
+            let result = match data {
+                Data::Bucket(b) => println!("found a bucket with the name {:?}", b.name()),
+                Data::KeyValue(data) => {
+                    let tx_outs: TxOutputs = rmp_serde::from_slice(data.value()).ok().ok_or_else(|| format!("Tx not found!"))?;
+                    for out in tx_outs.outputs{
+                        if out.is_locked_with_key(pubkey_hash.clone()){
+                            utxos.push(out);
+                        };
+                    };
+                }
+            };
+        };
+        Ok(Vec::new())
     }
 
     pub fn update(&mut self, block: &Block) -> Result<(),Box<dyn Error>>{

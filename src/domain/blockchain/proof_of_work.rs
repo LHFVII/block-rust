@@ -52,14 +52,6 @@ impl ProofOfWork {
         println!("\n\n");
         (nonce, hash)
     }
-    
-    pub fn validate(&self) -> bool {
-        let data = self.prepare_data(self.block.nonce);
-        let hash = Sha256::digest(&data);
-        let hash_int = BigInt::from_bytes_be(num_bigint::Sign::Plus, &hash);
-        hash_int.cmp(&self.target) == Ordering::Less
-    }
-
 }
 
 fn int_to_hex(n: u64) -> Vec<u8> {

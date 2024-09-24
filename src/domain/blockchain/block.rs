@@ -37,20 +37,6 @@ impl Block {
         block
     }
 
-    pub fn new_genesis_block(coinbase: Transaction) -> Self{
-        Self::new(vec![coinbase], Vec::new())
-    }
-
-    pub fn serialize(&self) -> Vec<u8>{
-        let encoded: Vec<u8> = bincode::serialize(&self).unwrap();
-        return encoded;
-    }
-
-    pub fn deserialize(encoded: Vec<u8>) -> Self{
-        let decoded = bincode::deserialize(&encoded[..]).unwrap();
-        return decoded;
-    }
-
     pub fn hash_transactions(&self) -> Vec<u8>{
         let tx_hashes: Vec<Vec<u8>> = self.transactions.iter()
         .map(|tx| tx.serialize_id())

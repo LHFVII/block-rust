@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use hex::decode;
+use jammdb::Data;
 use serde::{Deserialize, Serialize};
 use crate::domain::{Block, Blockchain};
 
@@ -57,15 +58,23 @@ impl UTXOSet{
         Ok(())
     }
 
-    pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u64) -> (u64, HashMap<&str,Vec<u64>>){
+    pub fn find_spendable_outputs(&self,pubkey_hash: Vec<u8>, amount: u64) -> Result<(u64, HashMap<&str,Vec<u64>>),Box<dyn Error>>{
         let unspent_outputs: HashMap<&str,Vec<u64>> = HashMap::new();
         let accumulated: u64 = 0;
         let db = self.blockchain.db.clone();
-        
-        
+        let tx = db.tx(true)?;
+        let bucket = tx.get_bucket(UTXO_BUCKET)?;
+        for data in bucket.cursor() {
+            match data {
+                Data::Bucket(b) => println!("found a bucket with the name {:?}", b.name()),
+                Data::KeyValue(data) => {
+                    let tx_out: TxOutput = rmp_serde::from_slice(data.value()).ok()?;
+                    let tx_id = hex::encode(tx_out.pubkey_hash);
+                }
+            }
+        }
 
-
-        return (0, unspent_outputs);
+        return Ok((0, unspent_outputs));
 
     }
 

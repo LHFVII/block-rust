@@ -1,7 +1,6 @@
 use std::default;
 
 use clap::{command,Parser, Subcommand};
-use secp256k1::hashes::hex::DisplayHex;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;

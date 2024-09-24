@@ -78,13 +78,13 @@ impl Transaction{
     fn hash(&self) -> Vec<u8> {
         let mut tx_copy = self.clone();
         tx_copy.id = Vec::new();
-        let serialized = tx_copy.serialize();
+        let serialized = tx_copy.serialize_id();
         let mut hasher = Sha256::new();
         hasher.update(&serialized);
         hasher.finalize().to_vec()
     }
 
-    fn serialize(&self) -> Vec<u8> {
+    pub fn serialize_id(&self) -> Vec<u8> {
         let mut result = Vec::new();
         result.extend(&self.id);
         result

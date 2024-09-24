@@ -4,6 +4,8 @@ use sha2::{Sha256,Digest};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::domain::{ProofOfWork, Transaction};
 
+use super::MerkleTree;
+
 
 #[derive(Clone)]
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -51,12 +53,9 @@ impl Block {
 
     pub fn hash_transactions(&self) -> Vec<u8>{
         let tx_hashes: Vec<Vec<u8>> = self.transactions.iter()
-        .map(|tx| tx.id.clone())
+        .map(|tx| tx.serialize_id())
         .collect();
-
-        let joined_hashes: Vec<u8> = tx_hashes.concat();
-        
-        let tx_hash = Sha256::digest(&joined_hashes);
-        tx_hash.to_vec()
+        let merkle_tree = MerkleTree::new(tx_hashes.to_vec());
+        return merkle_tree.root.unwrap().data;
     }
 }

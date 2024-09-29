@@ -81,6 +81,11 @@ impl CLI{
             Ok(blockchain) => {
                 self.bc = Some(blockchain);
                 println!("Blockchain created successfully.");
+                let mut utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
+                match utxo_set.reindex(){
+                    Ok(_) => println!("Done!"),
+                    Err(e) => eprintln!("Error reindexing the utxo set: {}", e)
+                }
             },
             Err(e) => {
                 eprintln!("Failed to create blockchain: {}", e);

@@ -88,7 +88,7 @@ impl UTXOSet{
         let tx = db.tx(true)?;
         let bucket = tx.get_bucket(UTXO_BUCKET)?;
         for data in bucket.cursor() {
-            let result = match data {
+            match data {
                 Data::Bucket(b) => println!("found a bucket with the name {:?}", b.name()),
                 Data::KeyValue(data) => {
                     let tx_outs: TxOutputs = rmp_serde::from_slice(data.value()).ok().ok_or_else(|| format!("Tx not found!"))?;

@@ -69,9 +69,12 @@ impl Blockchain {
         
     }
 
-    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Box<dyn Error>> {
+    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
+        for tx in transactions{
+            self.verify_transaction(tx);
+        }
         if let Some(data) = bucket.get(b"l") {
             let block: Block = rmp_serde::from_slice(data.kv().value())
                 .map_err(|e| Box::new(e) as Box<dyn Error>)?;
@@ -79,10 +82,12 @@ impl Blockchain {
             let block_bytes = rmp_serde::to_vec(&new_block)
                         .map_err(|e| Box::new(e) as Box<dyn Error>)?;
             bucket.put(new_block.hash.clone(), block_bytes)?;
-            bucket.put("tip", new_block.hash)?;
+            bucket.put("tip", new_block.hash.clone())?;
+            tx.commit()?;
+            Ok(new_block)
+        }else{
+            Err("Tip not found.".into())
         }
-        tx.commit()?;
-        Ok(true)
     }
 
     pub fn next(&mut self) -> Option<Block> {
@@ -232,7 +237,20 @@ impl Blockchain {
             }
         }
         transaction.sign(private_key, prev_txs);
-    }  
+    }
+    pub fn verify_transaction(&mut self, tx: Transaction) -> bool{
+        if tx.is_coinbase(){
+            return true
+        }
+        let mut prev_txs = HashMap::<String,Transaction>::new();
+        for vin in tx.vin.clone(){
+            let prev_tx = self.find_transaction(vin.txid).unwrap();
+            prev_txs.insert(hex::encode(prev_tx.id.clone()), prev_tx);
+        }
+
+        return tx.clone().verify(prev_txs).unwrap();
+
+    }
 }
 
 

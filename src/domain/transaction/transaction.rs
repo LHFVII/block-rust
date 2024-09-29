@@ -1,5 +1,6 @@
 use std::collections::HashMap;
-use secp256k1::{Message, Secp256k1, SecretKey};
+use secp256k1::{Message, Secp256k1,PublicKey, SecretKey};
+use secp256k1::ecdsa::{Signature};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
@@ -139,6 +140,43 @@ impl Transaction{
         }
 
     }
+
+    pub fn verify(&mut self, prev_txs: HashMap<String,Transaction>) -> Result<bool, Box<dyn Error>>{
+        if self.is_coinbase() {
+            return Ok(true);
+        }
+
+        for vin in &self.vin {
+            let prev_tx_id = hex::encode(&vin.txid);
+            if !prev_txs.contains_key(&prev_tx_id) {
+                return Err("ERROR: Previous transaction is not correct".into());
+            }
+        }
+
+        let tx_copy = self.trimmed_copy();
+        let secp = Secp256k1::verification_only();
+
+        for (in_id, vin) in self.vin.iter().enumerate() {
+            let prev_tx = &prev_txs[&hex::encode(&vin.txid)];
+            let mut tx_copy = tx_copy.clone();
+
+            tx_copy.vin[in_id].signature = Some(Vec::new());
+            tx_copy.vin[in_id].pubkey = prev_tx.vout[vin.vout].pubkey_hash.clone();
+            tx_copy.id = tx_copy.hash();
+            tx_copy.vin[in_id].pubkey = Some(Vec::new());
+
+            let message = Message::from_digest_slice(&tx_copy.id)?;
+            let public_key = PublicKey::from_slice(&vin.pubkey.unwrap())?;
+            let signature = Signature::from_compact(&vin.signature.unwrap())?;
+
+            if !secp.verify_ecdsa(&message, &signature, &public_key).is_ok() {
+                return Ok(false);
+            }
+        }
+        Ok(true)
+    }
+
+    
 }
 
 

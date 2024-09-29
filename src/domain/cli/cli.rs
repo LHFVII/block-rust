@@ -130,13 +130,16 @@ impl CLI{
                 let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
                 let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
                 let tx_vec = vec![cbtx,tx];
-                
                 match bc.mine_block(tx_vec){
-                    Ok(_) => println!("Successfully sent tx"),
+                    Ok(block) => {
+                        println!("Successfully sent tx");
+                        match utxo_set.update(&block){
+                            Ok(_) => println!("Success"),
+                            Err(e) => eprintln!("Error calculating balance: {}", e),
+                        }
+                    },
                     Err(e) => eprintln!("Error calculating balance: {}", e),
                 }
-                utxo_set.update(block);
-                println!("Success");
             }
             None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),
         }

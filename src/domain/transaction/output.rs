@@ -44,17 +44,16 @@ const UTXO_BUCKET: &str = "chainstate";
 impl UTXOSet{
     pub fn reindex(&mut self) -> Result<(), Box<dyn Error>>{
         let db = self.blockchain.db.clone();
-        let tx = db.tx(true)?;
-        tx.delete_bucket(UTXO_BUCKET);
-        let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
-        let utxo = self.blockchain.find_utxo();
-        for (tx_id, outs) in utxo{
-            let key = decode(tx_id).unwrap();
-            let outs_bytes = rmp_serde::to_vec(&outs)
-                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
-            block_bucket.put(key, outs_bytes);
+        let tx: jammdb::Tx<'_> = db.tx(true)?;
+        match tx.delete_bucket(UTXO_BUCKET){
+            Ok(_)=> {
+                println!("Bucket deleted succesfully");
+            },
+            Err(e) => {
+                eprintln!("Error deleting bucket: {}", e);
+            }
         }
-        tx.commit()?;
+        self.create_bucket_and_reindex(tx);
         Ok(())
     }
 
@@ -155,6 +154,25 @@ impl UTXOSet{
         let cursor = bucket.cursor();
         let count = cursor.count();
         Ok(count as u32)
+    }
+
+    fn create_bucket_and_reindex(&mut self, tx: jammdb::Tx<'_>) -> Result<(), Box<dyn Error>>{
+        let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
+        let utxo = self.blockchain.find_utxo();
+        for (tx_id, outs) in utxo{
+            let key = decode(tx_id).unwrap();
+            let outs_bytes = rmp_serde::to_vec(&outs)
+                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+            match block_bucket.put(key, outs_bytes){
+                Ok(_) => println!("Out bytes posted successfully"),
+                Err(e) =>{
+                    eprintln!("Error putting outs: {}", e);
+                    return Err("Internal server error".into())
+                }
+            }
+        }
+        tx.commit()?;
+        Ok(())
     }
 }
 

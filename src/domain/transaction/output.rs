@@ -148,5 +148,13 @@ impl UTXOSet{
         tx.commit();
         Ok(())
     }
+    pub fn count_transactions(&mut self) -> Result<u32,Box<dyn Error>>{
+        let db = self.blockchain.db.clone();
+        let tx = db.tx(true)?;
+        let bucket = tx.get_bucket(UTXO_BUCKET)?;
+        let cursor = bucket.cursor();
+        let count = cursor.count();
+        Ok(count as u32)
+    }
 }
 

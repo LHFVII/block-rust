@@ -9,6 +9,7 @@ const BLOCKS_BUCKET: &str = "blocks";
 const GENESIS_COINBASE_DATA: &str = "ALPHA";
 const DB_PATH: &str = "blockchain.db";
 
+#[derive(Clone)]
 pub struct Blockchain {
     pub tip: Vec<u8>,
     pub db: DB,

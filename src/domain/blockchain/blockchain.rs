@@ -72,8 +72,8 @@ impl Blockchain {
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
-        for tx in transactions{
-            self.verify_transaction(tx);
+        for transaction in transactions.clone(){
+            self.verify_transaction(transaction);
         }
         if let Some(data) = bucket.get(b"l") {
             let block: Block = rmp_serde::from_slice(data.kv().value())
@@ -238,18 +238,16 @@ impl Blockchain {
         }
         transaction.sign(private_key, prev_txs);
     }
-    pub fn verify_transaction(&mut self, tx: Transaction) -> bool{
-        if tx.is_coinbase(){
+    pub fn verify_transaction(&mut self, transaction: Transaction) -> bool{
+        if transaction.is_coinbase(){
             return true
         }
         let mut prev_txs = HashMap::<String,Transaction>::new();
-        for vin in tx.vin.clone(){
+        for vin in transaction.vin.clone(){
             let prev_tx = self.find_transaction(vin.txid).unwrap();
             prev_txs.insert(hex::encode(prev_tx.id.clone()), prev_tx);
         }
-
-        return tx.clone().verify(prev_txs).unwrap();
-
+        return transaction.clone().verify(prev_txs).unwrap();
     }
 }
 

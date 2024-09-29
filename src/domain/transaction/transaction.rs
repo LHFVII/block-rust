@@ -161,13 +161,13 @@ impl Transaction{
             let mut tx_copy = tx_copy.clone();
 
             tx_copy.vin[in_id].signature = Some(Vec::new());
-            tx_copy.vin[in_id].pubkey = prev_tx.vout[vin.vout].pubkey_hash.clone();
+            tx_copy.vin[in_id].pubkey = Some(prev_tx.vout[vin.vout as usize].pubkey_hash.clone());
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pubkey = Some(Vec::new());
 
             let message = Message::from_digest_slice(&tx_copy.id)?;
-            let public_key = PublicKey::from_slice(&vin.pubkey.unwrap())?;
-            let signature = Signature::from_compact(&vin.signature.unwrap())?;
+            let public_key = PublicKey::from_slice(&vin.pubkey.clone().unwrap())?;
+            let signature = Signature::from_compact(&vin.signature.clone().unwrap())?;
 
             if !secp.verify_ecdsa(&message, &signature, &public_key).is_ok() {
                 return Ok(false);

@@ -100,13 +100,10 @@ impl CLI{
         match self.bc {
             Some(_) => {
                 let utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
-                let mut balance = 0;
                 let decoded = bs58::decode(address.clone()).into_vec().unwrap();
                 let pubkey_hash = decoded[1..decoded.len() - 4].to_vec();
                 let utxos = utxo_set.find_utxo(pubkey_hash).unwrap();
-                for out in utxos{
-                    balance += out.value;
-                }
+                let balance: u32 = utxos.iter().map(|out| out.value).sum();
                 println!("Balance of {}: {}", address, balance);
             }
             None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),
@@ -121,36 +118,50 @@ impl CLI{
     }
 
     fn send(&mut self, from: String, to: String, amount:u32){
-        let bc = self.bc.as_mut().unwrap();
-        let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
-        
-        let mut tx_vec = Vec::new();
-        tx_vec.push(tx);
-        bc.mine_block(tx_vec);
-        println!("Successfully sent tx");
+        match self.bc {
+            Some(_) => {
+                let bc = self.bc.as_mut().unwrap();
+                let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
+                let mut tx_vec = Vec::new();
+                tx_vec.push(tx);
+                match bc.mine_block(tx_vec){
+                    Ok(_) => println!("Successfully sent tx"),
+                    Err(e) => eprintln!("Error calculating balance: {}", e),
+                }
+            }
+            None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),
+        }
     }
     
     fn print_chain(&mut self) {
-        let bc = self.bc.as_mut().unwrap();
-        let mut current_block = bc.next();
-        while let Some(block) = current_block {
-            println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
-            println!("Hash: {}", hex::encode(&block.hash));
-            ProofOfWork::new(block.clone());
-            println!();
-            if block.prev_block_hash.is_empty() {
-                break;
+        match self.bc {
+            Some(_) => {
+                let bc = self.bc.as_mut().unwrap();
+                let mut current_block = bc.next();
+                while let Some(block) = current_block {
+                    println!("Prev. hash: {}", hex::encode(&block.prev_block_hash));
+                    println!("Hash: {}", hex::encode(&block.hash));
+                    ProofOfWork::new(block.clone());
+                    println!();
+                    if block.prev_block_hash.is_empty() {
+                        break;
+                    }
+                    current_block = bc.next();
+                }
             }
-            current_block = bc.next();
+            None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),
         }
     }
 
     fn reindex_utxo(&self){
         let mut utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
-        utxo_set.reindex();
-        let count = utxo_set.count_transactions().unwrap();
-        println!("Done! There are {count} transactions in the UTXO set.")
-
+        match utxo_set.reindex(){
+            Ok(_) =>{
+                let count = utxo_set.count_transactions().unwrap();
+                println!("Done! There are {count} transactions in the UTXO set.")
+            },
+            Err(e) => eprintln!("Error reindexing the utxo set: {}", e),
+        }
     }
 
     fn show_commands(&mut self) {

@@ -71,12 +71,13 @@ impl Blockchain {
 
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
         for transaction in transactions.clone(){
-            self.verify_transaction(transaction);
+            let verified = self.verify_transaction(transaction);
+            println!("Transactions verified successfully: {}", verified)
         }
 
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
-        
+
         if let Some(data) = bucket.get(b"l") {
             let block: Block = rmp_serde::from_slice(data.kv().value())
                 .map_err(|e| Box::new(e) as Box<dyn Error>)?;

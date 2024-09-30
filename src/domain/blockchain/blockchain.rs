@@ -1,5 +1,5 @@
 use std::{collections::HashMap, path::Path};
-use crate::domain::{Transaction, Block, TxOutput};
+use crate::domain::{Block, Transaction, TxOutput, TxOutputs};
 use jammdb::{DB};
 use std::error::Error;
 use secp256k1::{SecretKey};
@@ -9,6 +9,7 @@ const BLOCKS_BUCKET: &str = "blocks";
 const GENESIS_COINBASE_DATA: &str = "ALPHA";
 const DB_PATH: &str = "blockchain.db";
 
+#[derive(Clone)]
 pub struct Blockchain {
     pub tip: Vec<u8>,
     pub db: DB,
@@ -68,9 +69,15 @@ impl Blockchain {
         
     }
 
-    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<bool, Box<dyn Error>> {
+    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
+        for transaction in transactions.clone(){
+            let verified = self.verify_transaction(transaction);
+            println!("Transactions verified successfully: {}", verified)
+        }
+
         let tx = self.db.tx(true)?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET)?;
+
         if let Some(data) = bucket.get(b"l") {
             let block: Block = rmp_serde::from_slice(data.kv().value())
                 .map_err(|e| Box::new(e) as Box<dyn Error>)?;
@@ -78,10 +85,12 @@ impl Blockchain {
             let block_bytes = rmp_serde::to_vec(&new_block)
                         .map_err(|e| Box::new(e) as Box<dyn Error>)?;
             bucket.put(new_block.hash.clone(), block_bytes)?;
-            bucket.put("tip", new_block.hash)?;
+            bucket.put("tip", new_block.hash.clone())?;
+            tx.commit()?;
+            Ok(new_block)
+        }else{
+            Err("Tip not found.".into())
         }
-        tx.commit()?;
-        Ok(true)
     }
 
     pub fn next(&mut self) -> Option<Block> {
@@ -139,17 +148,40 @@ impl Blockchain {
         unspent_txs
     }
 
-    pub fn find_utxo(&mut self,address: Vec<u8>) -> Vec<TxOutput>{
-        let mut utxos = Vec::new();
-        let unspent_txs = self.find_unspent_transactions(address.clone());
-        for tx in unspent_txs{
-            for out in tx.vout{
-                if out.is_locked_with_key(address.clone()){
-                    utxos.push(out);
+    pub fn find_utxo(&mut self) -> HashMap<String,TxOutputs>{
+        let mut utxo: HashMap<String, TxOutputs> = HashMap::new();
+        let mut spent_txs: HashMap<String, Vec<u8>> = HashMap::new();
+        while let Some(block) = self.next() {
+            for tx in block.transactions{
+                let tx_id = hex::encode(tx.clone().id);
+                'outputs: 
+                    for (out_idx, out) in tx.vout.iter().enumerate() {
+                    if let Some(spent_out_indices) = spent_txs.get(&tx_id) {
+                        if spent_out_indices.contains(&(out_idx as u8)) {
+                            continue 'outputs;
+                        }
+                    }
+        
+                    utxo.entry(tx_id.clone())
+                        .or_insert(TxOutputs { outputs: Vec::new() })
+                        .outputs
+                        .push(out.clone());
+                    }
+                    if tx.is_coinbase() == false{
+                        for vin in tx.vin {
+                            let in_tx_id = hex::encode(&vin.txid);
+                            spent_txs
+                                .entry(in_tx_id)
+                                .or_insert(Vec::new())
+                                .push(vin.vout);
+                        }
+                    }
+                if(block.prev_block_hash.is_empty()){
+                    break
                 }
             }
         }
-        utxos
+        utxo
     }
 
     pub fn find_spendable_outputs(&mut self, address: Vec<u8>, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {
@@ -175,6 +207,7 @@ impl Blockchain {
     }
 
     pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
+
         let mut current_block = self.next();
     
         while let Some(block) = current_block {
@@ -183,6 +216,7 @@ impl Blockchain {
                     return Ok(tx)
                 }
             }
+            
             if block.prev_block_hash.is_empty() {
                 break;
             }
@@ -206,7 +240,18 @@ impl Blockchain {
             }
         }
         transaction.sign(private_key, prev_txs);
-    }  
+    }
+    pub fn verify_transaction(&mut self, transaction: Transaction) -> bool{
+        if transaction.is_coinbase(){
+            return true
+        }
+        let mut prev_txs = HashMap::<String,Transaction>::new();
+        for vin in transaction.vin.clone(){
+            let prev_tx = self.find_transaction(vin.txid).unwrap();
+            prev_txs.insert(hex::encode(prev_tx.id.clone()), prev_tx);
+        }
+        return transaction.clone().verify(prev_txs).unwrap();
+    }
 }
 
 

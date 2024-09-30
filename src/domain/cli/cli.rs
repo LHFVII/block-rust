@@ -1,6 +1,7 @@
 use std::default;
 
 use clap::{command,Parser, Subcommand};
+use crate::domain::start_server;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
@@ -176,6 +177,17 @@ impl CLI{
         }
     }
 
+    fn start_node(&self, node_id: String, miner_address: String){
+        println!("Starting node {}", node_id);
+        if miner_address.len() > 0 {
+            println!("Beep boop");
+
+        }else{
+            println!("INTERNAL SERVER ERROR")
+        }
+        let _ =start_server(node_id, miner_address);
+    }
+
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
     1) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
@@ -185,6 +197,7 @@ impl CLI{
     5) print-chain - Shows all blocks that belong to the current blockchain.
     6) reindex - Rebuild the UTXO set
     7) send <from> <to> <amount> - Sends an amount of coins from an address to another
+    8) startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining
     "#);
     }
     

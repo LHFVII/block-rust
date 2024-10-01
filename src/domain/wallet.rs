@@ -97,19 +97,15 @@ impl Wallets {
             return Ok(());
         }
         let mut file = fs::File::open(path)?;
-        
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
-        
         let loaded_wallets: Wallets = bincode::deserialize(&content)?;
-        
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
         for (_key,wallet) in &loaded_wallets.wallets{
             let current_wallet = Wallet{private_key:wallet.private_key, public_key: wallet.public_key};
             wallets.insert(String::from_utf8_lossy(&wallet.get_address()).to_string(), current_wallet);
         }
         self.wallets = wallets;
-
         Ok(())
     }
 

@@ -17,11 +17,12 @@ pub struct Blockchain {
 }
 
 impl Blockchain {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub fn new(node_id: String) -> Result<Self, Box<dyn Error>> {
+        let new_db_path = format!("{DB_PATH}.node.{node_id}");
         if !Path::new(DB_PATH).exists() {
             return Err("Blockchain does not exist.".into())
         }
-        let db = DB::open(DB_PATH)?;
+        let db = DB::open(new_db_path)?;
         let tip = {
             let tx = db.tx(true)?;
             let result = match tx.get_bucket(BLOCKS_BUCKET) {

@@ -32,24 +32,17 @@ enum Commands {
         from: String,
         to: String,
         amount: u32,
+    },
+    StartNode{
+        node_id: String, 
+        miner_address: String
     }
 }
-pub struct CLI {
-    pub bc: Option<Blockchain>,
-}
+pub struct CLI {}
 
 impl CLI{
     pub fn new() -> Self{
-        let bc = Blockchain::new();
-        let mut final_bc;
-        match bc{
-            Ok(blockchain) => final_bc = Some(blockchain),
-            Err(e) => {
-                println!("No blockchain created, run the create-blockchain command first!");
-                final_bc = None
-            }
-        }
-        CLI{bc: final_bc}
+        CLI{}
     }
 
     pub fn run(&mut self) {
@@ -70,6 +63,7 @@ impl CLI{
                         Commands::ListAddresses => self.list_addresses(),
                         Commands::Reindex => self.reindex_utxo(),
                         Commands::Send { from, to, amount } => self.send(from, to, amount),
+                        Commands::StartNode { node_id, miner_address } => self.start_node(node_id, miner_address),
                     }
                 }
                 Err(e) => println!("That's not a valid command! Error: {}", e),
@@ -185,7 +179,7 @@ impl CLI{
         }else{
             println!("INTERNAL SERVER ERROR")
         }
-        let _ =start_server(node_id, miner_address);
+        let _ = start_server(node_id, miner_address);
     }
 
     fn show_commands(&mut self) {

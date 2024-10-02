@@ -35,6 +35,7 @@ pub struct TxOutputs{
 }
 
 // Acts as a cache that is built from all blockchain transactions
+#[derive(Clone)]
 pub struct UTXOSet{
     pub blockchain: Blockchain
 }

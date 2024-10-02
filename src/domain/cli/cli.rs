@@ -5,6 +5,7 @@ use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
 use crate::domain::UTXOSet;
+use crate::domain::Wallet;
 use crate::domain::Wallets;
 
 
@@ -127,7 +128,8 @@ impl CLI{
             Some(_) => {
                 let bc = self.bc.as_mut().unwrap();
                 let mut utxo_set = UTXOSet{blockchain: bc.clone()};
-                let tx = Transaction::new_utxo_transaction(&from, to, amount,bc).unwrap();
+                let wallet = Wallet::new();
+                let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set.clone()).unwrap();
                 let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
                 let tx_vec = vec![cbtx,tx];
                 match bc.mine_block(tx_vec){

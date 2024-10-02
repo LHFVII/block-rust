@@ -4,8 +4,8 @@ use secp256k1::ecdsa::{Signature};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
-use crate::domain::{hash_pubkey, Blockchain, Wallets};
-use super::{TxInput, TxOutput};
+use crate::domain::{hash_pubkey, Blockchain, Wallet, Wallets};
+use super::{TxInput, TxOutput, UTXOSet};
 
 const SUBSIDY:u32 = 10;
 
@@ -33,15 +33,11 @@ impl Transaction{
         return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
     }
 
-    pub fn new_utxo_transaction(from: &str, to: String, amount: u32, bc: &mut Blockchain) -> Result<Transaction, Box<dyn Error>>{
+    pub fn new_utxo_transaction(wallet: Wallet, to: String, amount: u32, mut utxo_set: UTXOSet) -> Result<Transaction, Box<dyn Error>>{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
-
-        let wallets = Wallets::new()?;
-        let wallet = wallets.get_wallet(from).ok_or("Wallet not found")?;
         let pubkey_hash = hash_pubkey(wallet.public_key.to_string().into_bytes());
-
-        let (acc, valid_outputs) = bc.find_spendable_outputs(pubkey_hash, amount);
+        let (acc, valid_outputs) = utxo_set.find_spendable_outputs(pubkey_hash, amount).unwrap();
 
         if acc < amount {
             return Err("ERROR: Not enough funds".into());
@@ -49,19 +45,20 @@ impl Transaction{
         
         for (txid, outs) in valid_outputs {
             let tx_id = hex::decode(txid)?;
-            for out in outs {
+            for out in 1..outs {
                 let input = TxInput {
                     txid: tx_id.clone(),
-                    vout: out,
+                    vout: out as u8,
                     signature: None,
                     pubkey: Some(wallet.public_key.clone().to_string().into_bytes()),
                 };
                 inputs.push(input);
             }
         }
+        let from_address = format!("{:?}",wallet.get_address());
         outputs.push(TxOutput::new(amount, to));
         if acc > amount {
-            outputs.push(TxOutput::new(acc - amount, from.to_string()));
+            outputs.push(TxOutput::new(acc - amount, from_address));
         }
 
         let mut tx = Transaction {
@@ -71,7 +68,7 @@ impl Transaction{
         };
 
         tx.id = tx.hash();
-        bc.sign_transaction(tx.clone(), &wallet.private_key);
+        utxo_set.blockchain.sign_transaction(tx.clone(), &wallet.private_key);
 
         Ok(tx)
     }

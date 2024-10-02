@@ -128,6 +128,7 @@ impl CLI{
             Some(_) => {
                 let bc = self.bc.as_mut().unwrap();
                 let mut utxo_set = UTXOSet{blockchain: bc.clone()};
+                // Check this part later
                 let wallet = Wallet::new();
                 let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set.clone()).unwrap();
                 let cbtx = Transaction::new_coinbase_tx(from,"".to_string());

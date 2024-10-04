@@ -97,10 +97,11 @@ impl UTXOSet{
                             utxos.push(out);
                         };
                     };
+                    return Ok(utxos);
                 }
             };
         };
-        Ok(Vec::new())
+        return Err("UTXO not found".into())
     }
 
     pub fn update(&mut self, block: &Block) -> Result<(),Box<dyn Error>>{

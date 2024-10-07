@@ -1,5 +1,5 @@
 use std::{collections::HashMap, path::Path};
-use crate::domain::{Block, Transaction, TxOutput, TxOutputs};
+use crate::domain::{Block, Transaction, TxOutputs};
 use jammdb::{DB};
 use std::error::Error;
 use secp256k1::{SecretKey};
@@ -109,45 +109,6 @@ impl Blockchain {
         }
     }
 
-    pub fn find_unspent_transactions(&mut self, address: Vec<u8>) -> Vec<Transaction> {
-        let mut unspent_txs: Vec<Transaction> = Vec::new();
-        let mut spent_txos: HashMap<String, Vec<u8>> = HashMap::new();
-        let mut current_block = self.next();
-        while let Some(ref block) = current_block {
-            for tx in &block.transactions {
-                let current_tx = tx.clone();
-                let tx_id = hex::encode(&current_tx.id);
-                'outputs: for (out_idx, out) in current_tx.vout.iter().enumerate() {
-                    if let Some(spent_outputs) = spent_txos.get(&tx_id) {
-                        if spent_outputs.contains(&(out_idx as u8)) {
-                            continue 'outputs;
-                        }
-                    }
-            
-                    if out.is_locked_with_key(address.clone()) {
-                        unspent_txs.push(tx.clone());
-                    }
-                }
-                if !tx.is_coinbase() {
-                    for input in &tx.vin {
-                        if input.uses_key(address.clone()) {
-                            let in_tx_id = hex::encode(&input.txid);
-                            spent_txos.entry(in_tx_id)
-                                .or_insert_with(Vec::new)
-                                .push(input.vout);
-                        }
-                    }
-                }
-            }
-            if block.prev_block_hash.is_empty() {
-                break;
-            }
-            current_block = self.next();
-        }
-    
-        unspent_txs
-    }
-
     pub fn find_utxo(&mut self) -> HashMap<String,TxOutputs>{
         let mut utxo: HashMap<String, TxOutputs> = HashMap::new();
         let mut spent_txs: HashMap<String, Vec<u8>> = HashMap::new();
@@ -176,34 +137,12 @@ impl Blockchain {
                                 .push(vin.vout);
                         }
                     }
-                if(block.prev_block_hash.is_empty()){
+                if block.prev_block_hash.is_empty(){
                     break
                 }
             }
         }
         utxo
-    }
-
-    pub fn find_spendable_outputs(&mut self, address: Vec<u8>, amount: u32) -> (u32,HashMap<String, Vec<u8>>) {
-        let mut unspent_outputs:HashMap::<String, Vec<u8>> = HashMap::<String, Vec<u8>>::new();
-        let unspent_txs = self.find_unspent_transactions(address.clone());
-        let mut accumulated = 0;
-        'work:
-            for tx in unspent_txs{
-                let id = hex::encode(tx.id);
-                for (out_id,out) in tx.vout.iter().enumerate(){
-                    if out.is_locked_with_key(address.clone()) && accumulated < amount {
-                        accumulated += out.value;
-                        unspent_outputs.entry(id.clone()).or_default().push(out_id as u8);
-
-                        if accumulated >= amount{
-                            break 'work;
-                        }
-                    }
-                }
-            }
-
-        (1,HashMap::<String, Vec<u8>>::new())
     }
 
     pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{

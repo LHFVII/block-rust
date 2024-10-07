@@ -4,7 +4,7 @@ use secp256k1::ecdsa::{Signature};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::error::Error;
-use crate::domain::{hash_pubkey, Blockchain, Wallet, Wallets};
+use crate::domain::{hash_pubkey, Wallet};
 use super::{TxInput, TxOutput, UTXOSet};
 
 const SUBSIDY:u32 = 10;
@@ -33,7 +33,7 @@ impl Transaction{
         return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
     }
 
-    pub fn new_utxo_transaction(wallet: Wallet, to: String, amount: u32, mut utxo_set: UTXOSet) -> Result<Transaction, Box<dyn Error>>{
+    pub fn new_utxo_transaction(wallet: &Wallet, to: String, amount: u32, mut utxo_set: UTXOSet) -> Result<Transaction, Box<dyn Error>>{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
         let pubkey_hash = hash_pubkey(wallet.public_key.to_string().into_bytes());

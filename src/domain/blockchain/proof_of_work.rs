@@ -35,7 +35,7 @@ impl ProofOfWork {
     }
     
     pub fn run(&self) -> (u64, [u8; 32]) {
-        let mut hash_int = BigInt::from(0u32);
+        let mut hash_int: BigInt;
         let mut hash = [0u8; 32];
         let mut nonce = 0u64;
         

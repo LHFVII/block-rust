@@ -1,5 +1,3 @@
-use std::io::Read;
-
 use sha2::{Sha256,Digest};
 
 pub struct MerkleTree{

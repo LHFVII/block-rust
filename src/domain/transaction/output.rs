@@ -54,7 +54,7 @@ impl UTXOSet{
                 eprintln!("Error deleting bucket: {}", e);
             }
         }
-        self.create_bucket_and_reindex(tx);
+        self.create_bucket_and_reindex(tx)?;
         Ok(())
     }
 
@@ -65,7 +65,7 @@ impl UTXOSet{
         let tx = db.tx(true)?;
         let bucket = tx.get_bucket(UTXO_BUCKET)?;
         for data in bucket.cursor() {
-            let result = match data {
+            match data {
                 Data::Bucket(b) => println!("found a bucket with the name {:?}", b.name()),
                 Data::KeyValue(data) => {
                     let tx_outs: TxOutputs = rmp_serde::from_slice(data.value()).ok().ok_or_else(|| format!("Tx not found!"))?;
@@ -121,11 +121,11 @@ impl UTXOSet{
                                 }
                             }
                             if updated_outs.outputs.len() == 0{
-                                bucket.delete(vin.txid);
+                                bucket.delete(vin.txid)?;
                             }else{
                                 let updated_outs_bytes = rmp_serde::to_vec(&updated_outs)
                                     .map_err(|e| Box::new(e) as Box<dyn Error>)?;
-                                bucket.put(vin.txid, updated_outs_bytes);
+                                bucket.put(vin.txid, updated_outs_bytes)?;
                             }                               
                             } else {
                                 println!("Nothing was found");
@@ -138,7 +138,7 @@ impl UTXOSet{
                     }
                     let new_outputs_bytes = rmp_serde::to_vec(&new_outputs)
                                     .map_err(|e| Box::new(e) as Box<dyn Error>)?;
-                    bucket.put(tx.id, new_outputs_bytes);
+                    bucket.put(tx.id, new_outputs_bytes)?;
                 }
                 
             },
@@ -146,7 +146,7 @@ impl UTXOSet{
                 println!("Error: Bucket not found");
             }
         };
-        tx.commit();
+        tx.commit()?;
         Ok(())
     }
     pub fn count_transactions(&mut self) -> Result<u32,Box<dyn Error>>{

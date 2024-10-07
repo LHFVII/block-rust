@@ -1,7 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::domain::hash_pubkey;
-
 #[derive(Clone)]
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TxInput{
@@ -12,10 +10,3 @@ pub struct TxInput{
 
 }
 
-impl TxInput{
-    pub fn uses_key(&self,pubkey_hash: Vec<u8>) -> bool{
-        let locking_hash = hash_pubkey(self.pubkey.clone().unwrap());
-        return locking_hash == pubkey_hash;
-    }
-
-}

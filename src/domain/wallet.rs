@@ -66,11 +66,11 @@ pub struct Wallets {
 }
 
 impl Wallets {
-    pub fn new() -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(node_id: String) -> Result<Self, Box<dyn std::error::Error>> {
         let mut wallets = Wallets {
             wallets: HashMap::new(),
         };
-        wallets.load_from_file()?;
+        wallets.load_from_file(node_id)?;
         Ok(wallets)
     }
 
@@ -91,10 +91,11 @@ impl Wallets {
         self.wallets.get(address)
     }
 
-    pub fn load_from_file(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        let path = Path::new(WALLET_FILE);
+    pub fn load_from_file(&mut self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let wallet_file = format!("{}{}",WALLET_FILE,node_id);
+        let path = Path::new(&wallet_file);
         if !path.exists() {
-            return Ok(());
+            return Err("File not found".into())
         }
         let mut file = fs::File::open(path)?;
         
@@ -113,9 +114,10 @@ impl Wallets {
         Ok(())
     }
 
-    pub fn save_to_file(&self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save_to_file(&self,node_id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let wallet_file = format!("{}{}",WALLET_FILE,node_id);
         let content = bincode::serialize(&self)?;
-        let mut file = fs::File::create(WALLET_FILE)?;
+        let mut file = fs::File::create(wallet_file)?;
         file.write_all(&content)?;
         Ok(())
     }

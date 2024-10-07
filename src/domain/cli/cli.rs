@@ -1,11 +1,9 @@
-use std::default;
-
 use clap::{command,Parser, Subcommand};
+use crate::domain::validate_address;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
 use crate::domain::Transaction;
 use crate::domain::UTXOSet;
-use crate::domain::Wallet;
 use crate::domain::Wallets;
 
 
@@ -22,16 +20,22 @@ enum Commands {
     CreateBlockchain {
         address: String,
     },
-    CreateWallet,
+    CreateWallet{
+        node_id: String
+    },
     GetBalance{
         address: String
     },
-    ListAddresses,
+    ListAddresses{
+        node_id: String,
+    },
     Reindex,
     Send{
         from: String,
         to: String,
         amount: u32,
+        node_id: String,
+        mine_now: bool,
     }
 }
 pub struct CLI {
@@ -41,15 +45,13 @@ pub struct CLI {
 impl CLI{
     pub fn new() -> Self{
         let bc = Blockchain::new();
-        let mut final_bc;
         match bc{
-            Ok(blockchain) => final_bc = Some(blockchain),
-            Err(e) => {
-                println!("No blockchain created, run the create-blockchain command first!");
-                final_bc = None
+            Ok(blockchain) => return CLI{bc: Some(blockchain)},
+            Err(_) => {
+                eprintln!("No blockchain created, run the create-blockchain command first!");
+                return CLI{bc: None}
             }
         }
-        CLI{bc: final_bc}
     }
 
     pub fn run(&mut self) {
@@ -65,11 +67,11 @@ impl CLI{
                     match cli.cmd {
                         Commands::PrintChain => self.print_chain(),
                         Commands::CreateBlockchain { address } => self.create_blockchain(address),
-                        Commands::CreateWallet => self.create_wallet(),
+                        Commands::CreateWallet {node_id} => self.create_wallet(node_id),
                         Commands::GetBalance { address } => self.get_balance(address),
-                        Commands::ListAddresses => self.list_addresses(),
+                        Commands::ListAddresses {node_id} => self.list_addresses(node_id),
                         Commands::Reindex => self.reindex_utxo(),
-                        Commands::Send { from, to, amount } => self.send(from, to, amount),
+                        Commands::Send { from, to, amount, node_id, mine_now } => self.send(from, to, amount,node_id,mine_now),
                     }
                 }
                 Err(e) => println!("That's not a valid command! Error: {}", e),
@@ -95,10 +97,10 @@ impl CLI{
         }
     }
 
-    fn create_wallet(&self){
-        let mut wallets = Wallets::new().unwrap();
+    fn create_wallet(&self, node_id: String){
+        let mut wallets = Wallets::new(node_id.clone()).unwrap();
         let address = wallets.create_wallet();
-        let _ = wallets.save_to_file();
+        let _ = wallets.save_to_file(node_id);
         println!("Address: {:?}", address);
     }
     
@@ -116,32 +118,43 @@ impl CLI{
         }
     }
 
-    fn list_addresses(&self){
-        let wallets = Wallets::new().unwrap();
-        for wallet in wallets.wallets.into_keys(){
-            println!("Wallet {}", wallet);
+    fn list_addresses(&self, node_id: String){
+        let wallets = Wallets::new(node_id).unwrap();
+        let addresses = wallets.get_addresses();
+        for address in addresses{
+            println!("Address is: {}", address);
         }
     }
 
-    fn send(&mut self, from: String, to: String, amount:u32){
+    fn send(&mut self, from: String, to: String, amount:u32, node_id: String, mine_now: bool){
+        if !validate_address(&from){
+            eprintln!("From address is not valid");
+            return
+        }
+        if !validate_address(&to){
+            eprintln!("To address is not valid");
+            return
+        }
         match self.bc {
             Some(_) => {
                 let bc = self.bc.as_mut().unwrap();
                 let mut utxo_set = UTXOSet{blockchain: bc.clone()};
-                // Check this part later
-                let wallet = Wallet::new();
+                let wallets = Wallets::new(node_id).unwrap();
+                let wallet = wallets.get_wallet(&from).unwrap();
                 let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set.clone()).unwrap();
-                let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
-                let tx_vec = vec![cbtx,tx];
-                match bc.mine_block(tx_vec){
-                    Ok(block) => {
-                        println!("Successfully sent tx");
-                        match utxo_set.update(&block){
-                            Ok(_) => println!("Success"),
-                            Err(e) => eprintln!("Error calculating balance: {}", e),
-                        }
-                    },
-                    Err(e) => eprintln!("Error calculating balance: {}", e),
+                if mine_now{
+                    let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
+                    let tx_vec = vec![cbtx,tx];
+                    match bc.mine_block(tx_vec){
+                        Ok(block) => {
+                            println!("Successfully sent tx");
+                            match utxo_set.update(&block){
+                                Ok(_) => println!("Success"),
+                                Err(e) => eprintln!("Error calculating balance: {}", e),
+                            }
+                        },
+                        Err(e) => eprintln!("Error calculating balance: {}", e),
+                    }
                 }
             }
             None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),

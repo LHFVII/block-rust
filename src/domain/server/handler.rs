@@ -7,15 +7,23 @@ use crate::domain::Blockchain;
 pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<()>{
     let mining_address = miner_address;
     let listener = TcpListener::bind("127.0.0.1:80")?;
-    
+    let bc = Blockchain::new().unwrap();
+
     for stream in listener.incoming() {
         println!("handling...");
-        //handle_client(stream?);
+        match stream{
+            Ok(conn)=>{handle_connection(conn, &bc)},
+            Err(e)=>{
+                eprintln!("Sth went wrong {:?}", e);
+            }
+
+        }
+        
     }
     Ok(())
 }
 
-pub fn handle_connection(mut conn: TcpStream, bc: Blockchain){
+pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain){
     let buffer = &mut Vec::new();
     let request = conn.read_to_end( buffer);
     match request{
@@ -34,6 +42,6 @@ pub fn handle_address(){
     println!("handling address...")
 }
 
-pub fn handle_get_blocks(request: usize, bc: Blockchain){
+pub fn handle_get_blocks(request: usize, bc: &Blockchain){
     println!("handling address...")
 }

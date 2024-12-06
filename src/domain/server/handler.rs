@@ -6,9 +6,21 @@ use crate::domain::Blockchain;
 
 pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<()>{
     let mining_address = miner_address;
-    let listener = TcpListener::bind("127.0.0.1:80")?;
+    println!("Creating listener ");
+    let result = TcpListener::bind("127.0.0.1:8000");
+    match &result{
+        Ok(_)=>{
+            println!("Listener created successfully")
+        },
+        Err(e)=>{
+            eprintln!("Something went wrong {:?}", e);
+            return Ok(());
+        }
+    }
+    let listener = result.unwrap();
+    println!("Creating blockchain ");
     let bc = Blockchain::new().unwrap();
-
+    println!("Blockchain created");
     for stream in listener.incoming() {
         println!("handling...");
         match stream{
@@ -16,9 +28,7 @@ pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<(
             Err(e)=>{
                 eprintln!("Sth went wrong {:?}", e);
             }
-
         }
-        
     }
     Ok(())
 }

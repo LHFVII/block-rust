@@ -1,4 +1,5 @@
 use clap::{command,Parser, Subcommand};
+use crate::domain::start_server;
 use crate::domain::validate_address;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
@@ -36,6 +37,10 @@ enum Commands {
         amount: u32,
         node_id: String,
         mine_now: bool,
+    },
+    StartNode{
+        node_id:String,
+        miner_address:String,
     }
 }
 pub struct CLI {
@@ -72,6 +77,7 @@ impl CLI{
                         Commands::ListAddresses {node_id} => self.list_addresses(node_id),
                         Commands::Reindex => self.reindex_utxo(),
                         Commands::Send { from, to, amount, node_id, mine_now } => self.send(from, to, amount,node_id,mine_now),
+                        Commands::StartNode{node_id,miner_address}=> self.start_server(node_id, miner_address),
                     }
                 }
                 Err(e) => println!("That's not a valid command! Error: {}", e),
@@ -192,6 +198,10 @@ impl CLI{
         }
     }
 
+    fn start_server(&self,node_id:String,miner_address: String){
+        start_server(node_id,miner_address);
+    }
+
     fn show_commands(&mut self) {
         println!(r#"COMMANDS:
     1) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
@@ -201,6 +211,7 @@ impl CLI{
     5) print-chain - Shows all blocks that belong to the current blockchain.
     6) reindex - Rebuild the UTXO set
     7) send <from> <to> <amount> - Sends an amount of coins from an address to another
+    8) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
     "#);
     }
     

@@ -22,6 +22,7 @@ impl Blockchain {
             return Err("Blockchain does not exist.".into())
         }
         let db = DB::open(DB_PATH)?;
+        println!("{:?}", DB_PATH);
         let tip = {
             let tx = db.tx(true)?;
             let result = match tx.get_bucket(BLOCKS_BUCKET) {

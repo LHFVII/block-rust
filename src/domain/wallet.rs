@@ -41,7 +41,7 @@ impl Wallet {
         let mut versioned_payload = vec![VERSION];
         versioned_payload.extend_from_slice(&pub_key_hash);
 
-        let checksum = checksum(versioned_payload.clone());
+        let checksum = checksum(&versioned_payload);
 
         let mut full_payload = versioned_payload;
         full_payload.extend_from_slice(&checksum);
@@ -55,7 +55,7 @@ pub fn hash_pubkey(pubkey: Vec<u8>)-> Vec<u8>{
     let public_ripemd160 = Ripemd160::digest(public_sha256);
     public_ripemd160.to_vec()
 }
-pub fn checksum(payload: Vec<u8>)-> Vec<u8>{
+pub fn checksum(payload: &Vec<u8>)-> Vec<u8>{
     let first_sha = Sha256::digest(payload);
     let second_sha = Sha256::digest(first_sha);
     second_sha[..ADDRESS_CHECKSUM_LEN].to_vec()
@@ -129,6 +129,6 @@ pub fn validate_address(address: &str) -> bool{
     let mut version = vec![pubkey_hash[0]];
     let pubkey_hash_sliced = &pubkey_hash[1..(pubkey_hash.len()-4)];
     version.extend_from_slice(pubkey_hash_sliced);
-    let target_checksum = checksum(version);
+    let target_checksum = checksum(&version);
     actual_checksum == target_checksum
 }

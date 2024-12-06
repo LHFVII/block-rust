@@ -78,8 +78,8 @@ impl Wallets {
         let wallet = Wallet::new();
         let address = wallet.get_address();
         let stringified_address = String::from_utf8_lossy(&address).to_string();
-        println!("Stringified address is {}",stringified_address.clone());
-        self.wallets.insert(stringified_address.clone(), wallet);
+        println!("Stringified address is {}",stringified_address);
+        self.wallets.insert(stringified_address, wallet);
         address
     }
 

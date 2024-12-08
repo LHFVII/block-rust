@@ -1,4 +1,5 @@
 use clap::{command,Parser, Subcommand};
+use jammdb::DB;
 use crate::domain::start_server;
 use crate::domain::validate_address;
 use crate::domain::Blockchain;
@@ -85,12 +86,12 @@ impl CLI{
         }
     }
 
-    fn create_blockchain(&mut self, address: String) {
+    fn create_blockchain(&mut self, address: String,) {
         match Blockchain::create_blockchain(address) {
             Ok(blockchain) => {
                 self.bc = Some(blockchain);
                 println!("Blockchain created successfully.");
-                let mut utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
+                let mut utxo_set = UTXOSet{blockchain: &mut self.bc.as_ref().unwrap()};
                 match utxo_set.reindex(){
                     Ok(_) => println!("Done!"),
                     Err(e) => eprintln!("Error reindexing the utxo set: {}", e)
@@ -144,10 +145,10 @@ impl CLI{
         match self.bc {
             Some(_) => {
                 let bc = self.bc.as_mut().unwrap();
-                let mut utxo_set = UTXOSet{blockchain: bc.clone()};
+                let mut utxo_set = UTXOSet{blockchain: bc};
                 let wallets = Wallets::new(node_id).unwrap();
                 let wallet = wallets.get_wallet(&from).unwrap();
-                let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set.clone()).unwrap();
+                let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set).unwrap();
                 if mine_now{
                     let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
                     let tx_vec = vec![cbtx,tx];
@@ -188,7 +189,11 @@ impl CLI{
     }
 
     fn reindex_utxo(&self){
-        let mut utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
+        if self.bc.is_none(){
+            eprintln!("No blockchain created, run the create-blockchain command first!");
+            return;
+        }
+        let mut utxo_set = UTXOSet{blockchain: &self.bc.unwrap()};
         match utxo_set.reindex(){
             Ok(_) =>{
                 let count = utxo_set.count_transactions().unwrap();

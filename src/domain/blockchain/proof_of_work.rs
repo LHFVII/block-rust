@@ -26,7 +26,7 @@ impl ProofOfWork {
 
     fn prepare_data(&self, nonce: u64) -> Vec<u8> {
         let mut data = Vec::new();
-        data.extend_from_slice(&self.block.prev_block_hash);
+        data.extend_from_slice(&self.block.prev_block_hash.as_bytes());
         data.extend_from_slice(&self.block.hash_transactions());
         data.extend_from_slice(&int_to_hex(self.block.timestamp));
         data.extend_from_slice(&int_to_hex(TARGET_BITS as u64));

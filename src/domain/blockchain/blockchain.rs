@@ -1,19 +1,18 @@
 use std::{collections::HashMap, path::Path};
 use crate::domain::{Block, Transaction, TxOutputs};
-use jammdb::{DB};
+use jammdb::DB;
 use std::error::Error;
-use secp256k1::{SecretKey};
+use secp256k1::SecretKey;
 
 
 const BLOCKS_BUCKET: &str = "blocks";
 const GENESIS_COINBASE_DATA: &str = "ALPHA";
 const DB_PATH: &str = "blockchain.db";
 
-#[derive(Clone)]
+
 pub struct Blockchain {
-    pub tip: Vec<u8>,
     pub db: DB,
-    pub current_hash: Vec<u8>,
+    pub hash_tip: Option<String>,
 }
 
 impl Blockchain {
@@ -22,7 +21,6 @@ impl Blockchain {
             return Err("Blockchain does not exist.".into())
         }
         let db = DB::open(DB_PATH)?;
-        println!("{:?}", DB_PATH);
         let tip = {
             let tx = db.tx(true)?;
             let result = match tx.get_bucket(BLOCKS_BUCKET) {
@@ -39,23 +37,21 @@ impl Blockchain {
             tx.commit()?;
             result
         };
-        
         Ok(Blockchain { 
-            tip: tip.clone(),
-            current_hash: tip,
-            db 
+            hash_tip:  Some(String::from_utf8(tip).unwrap()),
+            db
         })
     }
 
     pub fn create_blockchain(address: String) -> Result<Self, Box<dyn Error>>{
-        if Path::new(DB_PATH).exists() {
-            return Err("Blockchain already exists.".into())
+        if !Path::new(DB_PATH).exists() {
+            return Err("Blockchain does not exist.".into())
         }
         let db = DB::open(DB_PATH)?;
         let tx = db.tx(true)?;
         let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
         let coinbase_tx = Transaction::new_coinbase_tx(address,String::from(GENESIS_COINBASE_DATA));
-        let genesis = Block::new(vec![coinbase_tx], Vec::new());
+        let genesis = Block::new(vec![coinbase_tx], String::from(""));
         let genesis_hash = genesis.hash.clone();
         let block_bytes = rmp_serde::to_vec(&genesis)
             .map_err(|e| Box::new(e) as Box<dyn Error>)?;
@@ -63,9 +59,8 @@ impl Blockchain {
         block_bucket.put("tip", genesis_hash.clone())?;
         tx.commit()?;
         Ok(Blockchain{
-            tip: genesis_hash.clone(),
-            current_hash: genesis_hash,
-            db: db.clone(),
+            hash_tip: Some(genesis_hash),
+            db,
         })
         
     }
@@ -95,17 +90,19 @@ impl Blockchain {
     }
 
     pub fn next(&mut self) -> Option<Block> {
-        if self.current_hash.is_empty() {
+        if self.hash_tip.is_none() {
             return None;
         }
+        let hash_tip = self.hash_tip.as_ref().unwrap();
         let tx = self.db.tx(false).ok()?;
         let bucket = tx.get_bucket(BLOCKS_BUCKET).ok()?;
-        if let Some(data) = bucket.get(&self.current_hash) {
+        if let Some(data) = bucket.get(hash_tip) {
             let block: Block = rmp_serde::from_slice(data.kv().value()).ok()?;
-            self.current_hash = block.prev_block_hash.clone();
+            self.hash_tip = Some(block.prev_block_hash.clone());
             Some(block)
         } else {
             println!("Nothing was found");
+            self.hash_tip = Some(String::from("tip"));
             None
         }
     }
@@ -113,6 +110,7 @@ impl Blockchain {
     pub fn find_utxo(&mut self) -> HashMap<String,TxOutputs>{
         let mut utxo: HashMap<String, TxOutputs> = HashMap::new();
         let mut spent_txs: HashMap<String, Vec<u8>> = HashMap::new();
+        
         while let Some(block) = self.next() {
             for tx in block.transactions{
                 let tx_id = hex::encode(tx.clone().id);
@@ -147,16 +145,13 @@ impl Blockchain {
     }
 
     pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
-
         let mut current_block = self.next();
-    
         while let Some(block) = current_block {
             for tx in block.transactions{
                 if tx.id == id{
                     return Ok(tx)
                 }
             }
-            
             if block.prev_block_hash.is_empty() {
                 break;
             }

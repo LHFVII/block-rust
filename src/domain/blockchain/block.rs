@@ -10,13 +10,13 @@ use super::MerkleTree;
 pub struct Block {
     pub timestamp: u64,
     pub transactions: Vec<Transaction>,
-    pub prev_block_hash: Vec<u8>,
-    pub hash: Vec<u8>,
+    pub prev_block_hash: String,
+    pub hash: String,
     pub nonce: u64,
 }
 
 impl Block {
-    pub fn new(transactions: Vec<Transaction>, prev_block_hash: Vec<u8>) -> Self {
+    pub fn new(transactions: Vec<Transaction>, prev_block_hash: String) -> Self {
         let timestamp = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .expect("Time went backwards")
@@ -25,12 +25,12 @@ impl Block {
             timestamp,
             transactions,
             prev_block_hash,
-            hash: Vec::new(),
+            hash: String::from(""),
             nonce: 0,
         };
         let pow = ProofOfWork::new(block.clone());
         let (nonce, hash) = pow.run();
-        block.hash = hash.to_vec();
+        block.hash = String::from("");
         block.nonce = nonce;
         block
     }

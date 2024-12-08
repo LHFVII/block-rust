@@ -35,17 +35,15 @@ pub struct TxOutputs{
 }
 
 // Acts as a cache that is built from all blockchain transactions
-#[derive(Clone)]
-pub struct UTXOSet{
-    pub blockchain: Blockchain
+pub struct UTXOSet<'a>{
+    pub blockchain: &'a mut Blockchain
 }
 
 const UTXO_BUCKET: &str = "chainstate";
 
-impl UTXOSet{
+impl <'a>UTXOSet<'a>{
     pub fn reindex(&mut self) -> Result<(), Box<dyn Error>>{
-        let db = self.blockchain.db.clone();
-        let tx: jammdb::Tx<'_> = db.tx(true)?;
+        let tx: jammdb::Tx<'_> = self.blockchain.db.tx(true)?;
         match tx.delete_bucket(UTXO_BUCKET){
             Ok(_)=> {
                 println!("Bucket deleted succesfully");
@@ -54,7 +52,21 @@ impl UTXOSet{
                 eprintln!("Error deleting bucket: {}", e);
             }
         }
-        self.create_bucket_and_reindex(tx)?;
+        let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
+        let utxo = self.blockchain.find_utxo();
+        for (tx_id, outs) in utxo{
+            let key = decode(tx_id).unwrap();
+            let outs_bytes = rmp_serde::to_vec(&outs)
+                        .map_err(|e| Box::new(e) as Box<dyn Error>)?;
+            match block_bucket.put(key, outs_bytes){
+                Ok(_) => println!("Out bytes posted successfully"),
+                Err(e) =>{
+                    eprintln!("Error putting outs: {}", e);
+                    return Err("Internal server error".into())
+                }
+            }
+        }
+        tx.commit()?;
         Ok(())
     }
 

@@ -43,7 +43,8 @@ const UTXO_BUCKET: &str = "chainstate";
 
 impl <'a>UTXOSet<'a>{
     pub fn reindex(&mut self) -> Result<(), Box<dyn Error>>{
-        let tx: jammdb::Tx<'_> = self.blockchain.db.tx(true)?;
+        let clone_db = self.blockchain.db.clone();
+        let tx: jammdb::Tx<'_> = clone_db.tx(true)?;
         match tx.delete_bucket(UTXO_BUCKET){
             Ok(_)=> {
                 println!("Bucket deleted succesfully");
@@ -53,6 +54,7 @@ impl <'a>UTXOSet<'a>{
             }
         }
         let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
+        
         let utxo = self.blockchain.find_utxo();
         for (tx_id, outs) in utxo{
             let key = decode(tx_id).unwrap();
@@ -94,7 +96,7 @@ impl <'a>UTXOSet<'a>{
         return Ok((accumulated, unspent_outputs));
     }
 
-    pub fn find_utxo(&self, pubkey_hash: Vec<u8>) -> Result<Vec<TxOutput>,Box<dyn Error>>{
+    pub fn find_utxo(self, pubkey_hash: Vec<u8>) -> Result<Vec<TxOutput>,Box<dyn Error>>{
         let mut utxos: Vec<TxOutput> = Vec::new();
         let db = self.blockchain.db.clone();
         let tx = db.tx(true)?;
@@ -116,7 +118,7 @@ impl <'a>UTXOSet<'a>{
         return Err("UTXO not found".into())
     }
 
-    pub fn update(&mut self, block: &Block) -> Result<(),Box<dyn Error>>{
+    pub fn update(self, block: &Block) -> Result<(),Box<dyn Error>>{
         let db = self.blockchain.db.clone();
         let tx = db.tx(true).unwrap();
         match tx.get_bucket(UTXO_BUCKET) {
@@ -161,7 +163,7 @@ impl <'a>UTXOSet<'a>{
         tx.commit()?;
         Ok(())
     }
-    pub fn count_transactions(&mut self) -> Result<u32,Box<dyn Error>>{
+    pub fn count_transactions(self) -> Result<u32,Box<dyn Error>>{
         let db = self.blockchain.db.clone();
         let tx = db.tx(true)?;
         let bucket = tx.get_bucket(UTXO_BUCKET)?;
@@ -170,7 +172,7 @@ impl <'a>UTXOSet<'a>{
         Ok(count as u32)
     }
 
-    fn create_bucket_and_reindex(&mut self, tx: jammdb::Tx<'_>) -> Result<(), Box<dyn Error>>{
+    fn create_bucket_and_reindex(self, tx: jammdb::Tx<'_>) -> Result<(), Box<dyn Error>>{
         let block_bucket = tx.create_bucket(UTXO_BUCKET)?;
         let utxo = self.blockchain.find_utxo();
         for (tx_id, outs) in utxo{

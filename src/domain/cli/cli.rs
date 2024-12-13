@@ -91,7 +91,7 @@ impl CLI{
             Ok(blockchain) => {
                 self.bc = Some(blockchain);
                 println!("Blockchain created successfully.");
-                let mut utxo_set = UTXOSet{blockchain: &mut self.bc.as_ref().unwrap()};
+                let mut utxo_set = UTXOSet{blockchain: self.bc.as_mut().unwrap()};
                 match utxo_set.reindex(){
                     Ok(_) => println!("Done!"),
                     Err(e) => eprintln!("Error reindexing the utxo set: {}", e)
@@ -114,7 +114,7 @@ impl CLI{
     fn get_balance(&mut self, address: String) {
         match self.bc {
             Some(_) => {
-                let utxo_set = UTXOSet{blockchain: self.bc.as_ref().unwrap().clone()};
+                let utxo_set = UTXOSet{blockchain: self.bc.as_mut().unwrap()};
                 let decoded = bs58::decode(address.clone()).into_vec().unwrap();
                 let pubkey_hash = decoded[1..decoded.len() - 4].to_vec();
                 let utxos = utxo_set.find_utxo(pubkey_hash).unwrap();
@@ -142,30 +142,32 @@ impl CLI{
             eprintln!("To address is not valid");
             return
         }
-        match self.bc {
-            Some(_) => {
-                let bc = self.bc.as_mut().unwrap();
-                let mut utxo_set = UTXOSet{blockchain: bc};
-                let wallets = Wallets::new(node_id).unwrap();
-                let wallet = wallets.get_wallet(&from).unwrap();
-                let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set).unwrap();
-                if mine_now{
-                    let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
-                    let tx_vec = vec![cbtx,tx];
-                    match bc.mine_block(tx_vec){
-                        Ok(block) => {
-                            println!("Successfully sent tx");
-                            match utxo_set.update(&block){
-                                Ok(_) => println!("Success"),
-                                Err(e) => eprintln!("Error calculating balance: {}", e),
-                            }
-                        },
-                        Err(e) => eprintln!("Error calculating balance: {}", e),
-                    }
-                }
-            }
-            None => eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first."),
+        if self.bc.is_none(){
+            eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first.");
+            return;
         }
+        let mut utxo_set = UTXOSet{blockchain: &mut self.bc.as_mut().unwrap()};
+        let wallets = Wallets::new(node_id).unwrap();
+        let wallet = wallets.get_wallet(&from).unwrap();
+        let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set).unwrap();
+        if !mine_now{
+            return;
+        }
+        let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
+        let tx_vec = vec![cbtx,tx];
+        match self.bc.unwrap().mine_block(tx_vec){
+            Ok(block) => {
+                println!("Successfully sent tx");
+                match utxo_set.update(&block){
+                    Ok(_) => println!("Success"),
+                    Err(e) => eprintln!("Error calculating balance: {}", e),
+                }
+            },
+            Err(e) => eprintln!("Error calculating balance: {}", e),
+        }
+
+                
+        
     }
     
     fn print_chain(&mut self) {
@@ -188,12 +190,12 @@ impl CLI{
         }
     }
 
-    fn reindex_utxo(&self){
+    fn reindex_utxo(&mut self){
         if self.bc.is_none(){
             eprintln!("No blockchain created, run the create-blockchain command first!");
             return;
         }
-        let mut utxo_set = UTXOSet{blockchain: &self.bc.unwrap()};
+        let mut utxo_set = UTXOSet{blockchain: self.bc.as_mut().unwrap()};
         match utxo_set.reindex(){
             Ok(_) =>{
                 let count = utxo_set.count_transactions().unwrap();

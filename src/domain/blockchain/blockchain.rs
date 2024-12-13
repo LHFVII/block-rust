@@ -65,7 +65,7 @@ impl Blockchain {
         
     }
 
-    pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
+    pub fn mine_block(&mut self,transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
         for transaction in transactions.clone(){
             let verified = self.verify_transaction(transaction);
             println!("Transactions verified successfully: {}", verified)
@@ -144,7 +144,7 @@ impl Blockchain {
         utxo
     }
 
-    pub fn find_transaction(&mut self,id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
+    pub fn find_transaction(&mut self, id: Vec<u8>)-> Result<Transaction, Box<dyn Error>>{
         let mut current_block = self.next();
         while let Some(block) = current_block {
             for tx in block.transactions{

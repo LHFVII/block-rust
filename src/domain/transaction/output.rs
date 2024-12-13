@@ -118,7 +118,7 @@ impl <'a>UTXOSet<'a>{
         return Err("UTXO not found".into())
     }
 
-    pub fn update(self, block: &Block) -> Result<(),Box<dyn Error>>{
+    pub fn update(&mut self, block: &Block) -> Result<(),Box<dyn Error>>{
         let db = self.blockchain.db.clone();
         let tx = db.tx(true).unwrap();
         match tx.get_bucket(UTXO_BUCKET) {

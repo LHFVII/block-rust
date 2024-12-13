@@ -33,7 +33,7 @@ impl Transaction{
         return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
     }
 
-    pub fn new_utxo_transaction(wallet: &Wallet, to: String, amount: u32, mut utxo_set: UTXOSet) -> Result<Transaction, Box<dyn Error>>{
+    pub fn new_utxo_transaction(wallet: &Wallet, to: String, amount: u32, utxo_set: &mut UTXOSet) -> Result<Transaction, Box<dyn Error>>{
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
         let pubkey_hash = hash_pubkey(wallet.public_key.to_string().into_bytes());

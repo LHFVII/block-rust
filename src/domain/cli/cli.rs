@@ -146,7 +146,8 @@ impl CLI{
             eprintln!("Error: Blockchain not initialized. Please create or load a blockchain first.");
             return;
         }
-        let mut utxo_set = UTXOSet{blockchain: &mut self.bc.as_mut().unwrap()};
+        let bc = self.bc.as_mut().unwrap();
+        let utxo_set = &mut UTXOSet{blockchain: bc};
         let wallets = Wallets::new(node_id).unwrap();
         let wallet = wallets.get_wallet(&from).unwrap();
         let tx = Transaction::new_utxo_transaction(wallet, to, amount, utxo_set).unwrap();
@@ -155,7 +156,7 @@ impl CLI{
         }
         let cbtx = Transaction::new_coinbase_tx(from,"".to_string());
         let tx_vec = vec![cbtx,tx];
-        match self.bc.unwrap().mine_block(tx_vec){
+        match utxo_set.blockchain.mine_block(tx_vec){
             Ok(block) => {
                 println!("Successfully sent tx");
                 match utxo_set.update(&block){

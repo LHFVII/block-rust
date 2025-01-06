@@ -4,3 +4,4 @@ target/
 Cargo.lock
 **/*.rs.bk
 blockchain.db
+wallet.dat

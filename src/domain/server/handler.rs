@@ -19,7 +19,7 @@ pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<(
     }
     let listener = result.unwrap();
     println!("Creating blockchain ");
-    let bc = Blockchain::new().unwrap();
+    let bc = Blockchain::create_blockchain(mining_address).unwrap();
     println!("Blockchain created");
     for stream in listener.incoming() {
         println!("handling...");

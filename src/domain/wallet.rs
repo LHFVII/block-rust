@@ -12,7 +12,7 @@ use std::path::Path;
 
 const VERSION: u8 = 0x00;
 const ADDRESS_CHECKSUM_LEN: usize = 4;
-const WALLET_FILE: &str = "wallet.dat";
+const WALLET_FILE: &str = ".dat";
 
 #[derive(Serialize, Deserialize)]
 pub struct Wallet {
@@ -64,6 +64,9 @@ pub struct Wallets {
 
 impl Wallets {
     pub fn new(node_id: String) -> Result<Self, Box<dyn std::error::Error>> {
+        let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
+        println!("{:?}", wallet_file.clone());
+        fs::File::create(wallet_file.clone())?;
         let mut wallets = Wallets {
             wallets: HashMap::new(),
         };
@@ -89,18 +92,15 @@ impl Wallets {
     }
 
     pub fn load_from_file(&mut self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
-        let wallet_file = format!("{}{}", WALLET_FILE, node_id);
+        let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
         let path = Path::new(&wallet_file);
         if !path.exists() {
             return Err("File not found".into());
         }
         let mut file = fs::File::open(path)?;
-
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
-
         let loaded_wallets: Wallets = bincode::deserialize(&content)?;
-
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
         for (_key, wallet) in &loaded_wallets.wallets {
             let current_wallet = Wallet {
@@ -113,12 +113,11 @@ impl Wallets {
             );
         }
         self.wallets = wallets;
-
         Ok(())
     }
 
     pub fn save_to_file(&self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
-        let wallet_file = format!("{}{}", WALLET_FILE, node_id);
+        let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
         let content = bincode::serialize(&self)?;
         let mut file = fs::File::create(wallet_file)?;
         file.write_all(&content)?;
@@ -128,6 +127,9 @@ impl Wallets {
 
 pub fn validate_address(address: &str) -> bool {
     let pubkey_hash = base58::FromBase58::from_base58(address).unwrap();
+    if address.len() < 4 {
+        return false;
+    }
     let actual_checksum = &pubkey_hash[(pubkey_hash.len() - 4)..];
     let mut version = vec![pubkey_hash[0]];
     let pubkey_hash_sliced = &pubkey_hash[1..(pubkey_hash.len() - 4)];

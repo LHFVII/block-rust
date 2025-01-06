@@ -4,7 +4,7 @@ use std::net::TcpStream;
 
 use crate::domain::Blockchain;
 
-pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<()> {
+pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<()> {
     let mining_address = miner_address;
     println!("Creating listener ");
     let result = TcpListener::bind("127.0.0.1:8000");
@@ -50,6 +50,6 @@ pub fn handle_address() {
     println!("handling address...")
 }
 
-pub fn handle_get_blocks(request: usize, bc: &Blockchain) {
+pub fn handle_get_blocks(_request: usize, _bc: &Blockchain) {
     println!("handling address...")
 }

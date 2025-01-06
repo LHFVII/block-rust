@@ -6,7 +6,6 @@ use crate::domain::Transaction;
 use crate::domain::UTXOSet;
 use crate::domain::Wallets;
 use clap::{command, Parser, Subcommand};
-use jammdb::DB;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -102,7 +101,6 @@ impl CLI {
         match Blockchain::create_blockchain(address) {
             Ok(blockchain) => {
                 self.bc = Some(blockchain);
-                println!("Blockchain created successfully.");
                 let mut utxo_set = UTXOSet {
                     blockchain: self.bc.as_mut().unwrap(),
                 };
@@ -228,20 +226,24 @@ impl CLI {
     }
 
     fn start_server(&self, node_id: String, miner_address: String) {
-        start_server(node_id, miner_address);
+        if !validate_address(&miner_address) {
+            eprintln!("Invalid address");
+            return;
+        }
+        let _ = start_server(node_id, miner_address);
     }
 
     fn show_commands(&mut self) {
         println!(
             r#"COMMANDS:
-    1) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
-    2) create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    1) create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    2) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
     3) get-balance <address> - Gets the balance of an address
-    4) list-addresses - Lists all available addresses
+    4) list-addresses <node_id> - Lists all available addresses
     5) print-chain - Shows all blocks that belong to the current blockchain.
     6) reindex - Rebuild the UTXO set
     7) send <from> <to> <amount> - Sends an amount of coins from an address to another
-    8) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
+    8) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
     "#
         );
     }

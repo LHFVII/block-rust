@@ -4,4 +4,5 @@ The networking primitives are WIP
 
 To do: 
 
-Add address validation for miner_address
+-Add address validation for miner_address
+-Suggest Address?

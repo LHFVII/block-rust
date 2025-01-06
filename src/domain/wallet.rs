@@ -1,16 +1,14 @@
-
-use serde::{Serialize, Deserialize};
-use sha2::{Sha256};
-use ripemd::{Ripemd160, Digest};
+use bincode;
 use bs58;
+use ripemd::{Digest, Ripemd160};
+use secp256k1::rand::rngs::OsRng;
+use secp256k1::{PublicKey, Secp256k1, SecretKey};
+use serde::{Deserialize, Serialize};
+use sha2::Sha256;
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
-use bincode;
 use std::io::{Read, Write};
-use secp256k1::{PublicKey, SecretKey, Secp256k1};
-use secp256k1::rand::rngs::OsRng;
-
+use std::path::Path;
 
 const VERSION: u8 = 0x00;
 const ADDRESS_CHECKSUM_LEN: usize = 4;
@@ -21,7 +19,6 @@ pub struct Wallet {
     pub private_key: SecretKey,
     pub public_key: PublicKey,
 }
-
 
 impl Wallet {
     pub fn new() -> Self {
@@ -34,7 +31,7 @@ impl Wallet {
         }
     }
 
-    pub fn get_address(&self) -> Vec<u8>{
+    pub fn get_address(&self) -> Vec<u8> {
         let pub_key_bytes = self.public_key.serialize().to_vec();
         let pub_key_hash = hash_pubkey(pub_key_bytes);
 
@@ -50,12 +47,12 @@ impl Wallet {
     }
 }
 
-pub fn hash_pubkey(pubkey: Vec<u8>)-> Vec<u8>{
+pub fn hash_pubkey(pubkey: Vec<u8>) -> Vec<u8> {
     let public_sha256 = Sha256::digest(pubkey);
     let public_ripemd160 = Ripemd160::digest(public_sha256);
     public_ripemd160.to_vec()
 }
-pub fn checksum(payload: &Vec<u8>)-> Vec<u8>{
+pub fn checksum(payload: &Vec<u8>) -> Vec<u8> {
     let first_sha = Sha256::digest(payload);
     let second_sha = Sha256::digest(first_sha);
     second_sha[..ADDRESS_CHECKSUM_LEN].to_vec()
@@ -78,7 +75,7 @@ impl Wallets {
         let wallet = Wallet::new();
         let address = wallet.get_address();
         let stringified_address = String::from_utf8_lossy(&address).to_string();
-        println!("Stringified address is {}",stringified_address);
+        println!("Stringified address is {}", stringified_address);
         self.wallets.insert(stringified_address, wallet);
         address
     }
@@ -92,30 +89,36 @@ impl Wallets {
     }
 
     pub fn load_from_file(&mut self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
-        let wallet_file = format!("{}{}",WALLET_FILE,node_id);
+        let wallet_file = format!("{}{}", WALLET_FILE, node_id);
         let path = Path::new(&wallet_file);
         if !path.exists() {
-            return Err("File not found".into())
+            return Err("File not found".into());
         }
         let mut file = fs::File::open(path)?;
-        
+
         let mut content = Vec::new();
         file.read_to_end(&mut content)?;
-        
+
         let loaded_wallets: Wallets = bincode::deserialize(&content)?;
-        
+
         let mut wallets: HashMap<String, Wallet> = HashMap::new();
-        for (_key,wallet) in &loaded_wallets.wallets{
-            let current_wallet = Wallet{private_key:wallet.private_key, public_key: wallet.public_key};
-            wallets.insert(String::from_utf8_lossy(&wallet.get_address()).to_string(), current_wallet);
+        for (_key, wallet) in &loaded_wallets.wallets {
+            let current_wallet = Wallet {
+                private_key: wallet.private_key,
+                public_key: wallet.public_key,
+            };
+            wallets.insert(
+                String::from_utf8_lossy(&wallet.get_address()).to_string(),
+                current_wallet,
+            );
         }
         self.wallets = wallets;
 
         Ok(())
     }
 
-    pub fn save_to_file(&self,node_id: String) -> Result<(), Box<dyn std::error::Error>> {
-        let wallet_file = format!("{}{}",WALLET_FILE,node_id);
+    pub fn save_to_file(&self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
+        let wallet_file = format!("{}{}", WALLET_FILE, node_id);
         let content = bincode::serialize(&self)?;
         let mut file = fs::File::create(wallet_file)?;
         file.write_all(&content)?;
@@ -123,11 +126,11 @@ impl Wallets {
     }
 }
 
-pub fn validate_address(address: &str) -> bool{
+pub fn validate_address(address: &str) -> bool {
     let pubkey_hash = base58::FromBase58::from_base58(address).unwrap();
-    let actual_checksum = &pubkey_hash[(pubkey_hash.len()-4)..];
+    let actual_checksum = &pubkey_hash[(pubkey_hash.len() - 4)..];
     let mut version = vec![pubkey_hash[0]];
-    let pubkey_hash_sliced = &pubkey_hash[1..(pubkey_hash.len()-4)];
+    let pubkey_hash_sliced = &pubkey_hash[1..(pubkey_hash.len() - 4)];
     version.extend_from_slice(pubkey_hash_sliced);
     let target_checksum = checksum(&version);
     actual_checksum == target_checksum

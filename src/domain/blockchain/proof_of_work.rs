@@ -1,9 +1,7 @@
 use crate::domain::block::Block;
 use num_bigint::BigInt;
+use sha2::{Digest, Sha256};
 use std::cmp::Ordering;
-use sha2::{Sha256,Digest};
-
-
 
 const TARGET_BITS: u16 = 20;
 const UPPER_BOUND: u16 = 256;
@@ -18,10 +16,7 @@ impl ProofOfWork {
     pub fn new(b: Block) -> Self {
         let mut target = BigInt::from(1);
         target <<= UPPER_BOUND - TARGET_BITS;
-        ProofOfWork {
-            block: b,
-            target,
-        }
+        ProofOfWork { block: b, target }
     }
 
     fn prepare_data(&self, nonce: u64) -> Vec<u8> {
@@ -33,12 +28,12 @@ impl ProofOfWork {
         data.extend_from_slice(&int_to_hex(nonce as u64));
         data
     }
-    
+
     pub fn run(&self) -> (u64, [u8; 32]) {
         let mut hash_int: BigInt;
         let mut hash = [0u8; 32];
         let mut nonce = 0u64;
-        
+
         while nonce < MAX_NONCE {
             let data = self.prepare_data(nonce);
             hash = Sha256::digest(&data).into();

@@ -4,15 +4,15 @@ use std::net::TcpStream;
 
 use crate::domain::Blockchain;
 
-pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<()>{
+pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<()> {
     let mining_address = miner_address;
     println!("Creating listener ");
     let result = TcpListener::bind("127.0.0.1:8000");
-    match &result{
-        Ok(_)=>{
+    match &result {
+        Ok(_) => {
             println!("Listener created successfully")
-        },
-        Err(e)=>{
+        }
+        Err(e) => {
             eprintln!("Something went wrong {:?}", e);
             return Ok(());
         }
@@ -23,9 +23,9 @@ pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<(
     println!("Blockchain created");
     for stream in listener.incoming() {
         println!("handling...");
-        match stream{
-            Ok(conn)=>{handle_connection(conn, &bc)},
-            Err(e)=>{
+        match stream {
+            Ok(conn) => handle_connection(conn, &bc),
+            Err(e) => {
                 eprintln!("Sth went wrong {:?}", e);
             }
         }
@@ -33,25 +33,23 @@ pub fn start_server(node_id: String, miner_address: String) -> std::io::Result<(
     Ok(())
 }
 
-pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain){
+pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
     let buffer = &mut Vec::new();
-    let request = conn.read_to_end( buffer);
-    match request{
-        Ok(res) =>{
-            match res{
-                1 => handle_address(),
-                2 => handle_get_blocks(request.unwrap(), bc),
-                _ => println!("Unknown command!")
-            }
-        }
-        Err(_)=> eprintln!("")
+    let request = conn.read_to_end(buffer);
+    match request {
+        Ok(res) => match res {
+            1 => handle_address(),
+            2 => handle_get_blocks(request.unwrap(), bc),
+            _ => println!("Unknown command!"),
+        },
+        Err(_) => eprintln!(""),
     }
 }
 
-pub fn handle_address(){
+pub fn handle_address() {
     println!("handling address...")
 }
 
-pub fn handle_get_blocks(request: usize, bc: &Blockchain){
+pub fn handle_get_blocks(request: usize, bc: &Blockchain) {
     println!("handling address...")
 }

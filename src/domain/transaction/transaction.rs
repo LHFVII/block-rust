@@ -1,48 +1,63 @@
-use std::collections::HashMap;
-use secp256k1::{Message, Secp256k1,PublicKey, SecretKey};
-use secp256k1::ecdsa::{Signature};
+use super::{TxInput, TxOutput, UTXOSet};
+use crate::domain::{hash_pubkey, Wallet};
+use secp256k1::ecdsa::Signature;
+use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
+use std::collections::HashMap;
 use std::error::Error;
-use crate::domain::{hash_pubkey, Wallet};
-use super::{TxInput, TxOutput, UTXOSet};
 
-const SUBSIDY:u32 = 10;
+const SUBSIDY: u32 = 10;
 
-#[derive(Clone)]
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-pub struct Transaction{
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct Transaction {
     pub id: Vec<u8>,
     pub vin: Vec<TxInput>,
-    pub vout: Vec<TxOutput>
+    pub vout: Vec<TxOutput>,
 }
 
-impl Transaction{
-    pub fn new_coinbase_tx(to: String, mut data: String) -> Self{
+impl Transaction {
+    pub fn new_coinbase_tx(to: String, mut data: String) -> Self {
         if data.len() == 0 {
             data = String::from("Reward to");
         }
-        let txin = TxInput{txid: Vec::new(),vout:0,signature:None,pubkey: Some(data.into_bytes()) };
+        let txin = TxInput {
+            txid: Vec::new(),
+            vout: 0,
+            signature: None,
+            pubkey: Some(data.into_bytes()),
+        };
         let txout = TxOutput::new(SUBSIDY, to);
-        let tx = Transaction{id: Vec::new(),vin: vec![txin], vout: vec![txout]};
+        let tx = Transaction {
+            id: Vec::new(),
+            vin: vec![txin],
+            vout: vec![txout],
+        };
         tx.hash();
-        return tx
+        return tx;
     }
 
-    pub fn is_coinbase(&self) -> bool{
-        return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0
+    pub fn is_coinbase(&self) -> bool {
+        return self.vin.len() == 1 && self.vin[0].txid.len() == 0 && self.vin[0].vout == 0;
     }
 
-    pub fn new_utxo_transaction(wallet: &Wallet, to: String, amount: u32, utxo_set: &mut UTXOSet) -> Result<Transaction, Box<dyn Error>>{
+    pub fn new_utxo_transaction(
+        wallet: &Wallet,
+        to: String,
+        amount: u32,
+        utxo_set: &mut UTXOSet,
+    ) -> Result<Transaction, Box<dyn Error>> {
         let mut inputs: Vec<TxInput> = Vec::new();
         let mut outputs: Vec<TxOutput> = Vec::new();
         let pubkey_hash = hash_pubkey(wallet.public_key.to_string().into_bytes());
-        let (acc, valid_outputs) = utxo_set.find_spendable_outputs(pubkey_hash, amount).unwrap();
+        let (acc, valid_outputs) = utxo_set
+            .find_spendable_outputs(pubkey_hash, amount)
+            .unwrap();
 
         if acc < amount {
             return Err("ERROR: Not enough funds".into());
         }
-        
+
         for (txid, outs) in valid_outputs {
             let tx_id = hex::decode(txid)?;
             for out in 1..outs {
@@ -55,7 +70,7 @@ impl Transaction{
                 inputs.push(input);
             }
         }
-        let from_address = format!("{:?}",wallet.get_address());
+        let from_address = format!("{:?}", wallet.get_address());
         outputs.push(TxOutput::new(amount, to));
         if acc > amount {
             outputs.push(TxOutput::new(acc - amount, from_address));
@@ -68,7 +83,9 @@ impl Transaction{
         };
 
         tx.id = tx.hash();
-        utxo_set.blockchain.sign_transaction(tx.clone(), &wallet.private_key);
+        utxo_set
+            .blockchain
+            .sign_transaction(tx.clone(), &wallet.private_key);
 
         Ok(tx)
     }
@@ -89,21 +106,25 @@ impl Transaction{
     }
 
     fn trimmed_copy(&self) -> Transaction {
-        let inputs: Vec<TxInput> = self.vin.iter().map(|vin| {
-            TxInput {
+        let inputs: Vec<TxInput> = self
+            .vin
+            .iter()
+            .map(|vin| TxInput {
                 txid: vin.txid.clone(),
                 vout: vin.vout,
                 signature: None,
                 pubkey: None,
-            }
-        }).collect();
+            })
+            .collect();
 
-        let outputs: Vec<TxOutput> = self.vout.iter().map(|vout| {
-            TxOutput {
+        let outputs: Vec<TxOutput> = self
+            .vout
+            .iter()
+            .map(|vout| TxOutput {
                 value: vout.value,
                 pubkey_hash: vout.pubkey_hash.clone(),
-            }
-        }).collect();
+            })
+            .collect();
 
         Transaction {
             id: self.id.clone(),
@@ -112,12 +133,12 @@ impl Transaction{
         }
     }
 
-    pub fn sign(&mut self, private_key: &SecretKey, prev_txs: HashMap<String,Transaction>){
-        if self.is_coinbase(){
+    pub fn sign(&mut self, private_key: &SecretKey, prev_txs: HashMap<String, Transaction>) {
+        if self.is_coinbase() {
             return;
         }
-        for vin in &self.vin{
-            if !prev_txs.contains_key(&hex::encode(vin.txid.clone())){
+        for vin in &self.vin {
+            if !prev_txs.contains_key(&hex::encode(vin.txid.clone())) {
                 panic!("ERROR: previous transaction is not correct")
             }
         }
@@ -127,7 +148,11 @@ impl Transaction{
         for in_id in 0..tx_copy.vin.len() {
             let prev_tx = prev_txs.get(&hex::encode(&self.vin[in_id].txid)).unwrap();
             tx_copy.vin[in_id].signature = None;
-            tx_copy.vin[in_id].pubkey = Some(prev_tx.vout[self.vin[in_id].vout as usize].pubkey_hash.clone());
+            tx_copy.vin[in_id].pubkey = Some(
+                prev_tx.vout[self.vin[in_id].vout as usize]
+                    .pubkey_hash
+                    .clone(),
+            );
             tx_copy.id = tx_copy.hash();
             tx_copy.vin[in_id].pubkey = None;
 
@@ -135,10 +160,12 @@ impl Transaction{
             let signature = secp.sign_ecdsa(&message, private_key);
             self.vin[in_id].signature = Some(signature.serialize_der().to_vec());
         }
-
     }
 
-    pub fn verify(&mut self, prev_txs: HashMap<String,Transaction>) -> Result<bool, Box<dyn Error>>{
+    pub fn verify(
+        &mut self,
+        prev_txs: HashMap<String, Transaction>,
+    ) -> Result<bool, Box<dyn Error>> {
         if self.is_coinbase() {
             return Ok(true);
         }
@@ -172,9 +199,4 @@ impl Transaction{
         }
         Ok(true)
     }
-
-    
 }
-
-
-

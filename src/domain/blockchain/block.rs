@@ -1,12 +1,10 @@
+use crate::domain::{ProofOfWork, Transaction};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
-use crate::domain::{ProofOfWork, Transaction};
 
 use super::MerkleTree;
 
-
-#[derive(Clone)]
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Block {
     pub timestamp: u64,
     pub transactions: Vec<Transaction>,
@@ -35,10 +33,12 @@ impl Block {
         block
     }
 
-    pub fn hash_transactions(&self) -> Vec<u8>{
-        let tx_hashes: Vec<Vec<u8>> = self.transactions.iter()
-        .map(|tx| tx.serialize_id())
-        .collect();
+    pub fn hash_transactions(&self) -> Vec<u8> {
+        let tx_hashes: Vec<Vec<u8>> = self
+            .transactions
+            .iter()
+            .map(|tx| tx.serialize_id())
+            .collect();
         let merkle_tree = MerkleTree::new(tx_hashes.to_vec());
         return merkle_tree.root.unwrap().data;
     }

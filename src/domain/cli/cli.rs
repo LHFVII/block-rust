@@ -120,7 +120,6 @@ impl CLI {
         let mut wallets = Wallets::new(node_id.clone()).unwrap();
         let address = wallets.create_wallet();
         let _ = wallets.save_to_file(node_id);
-        println!("Address: {:?}", address);
     }
 
     fn get_balance(&mut self, address: String) {

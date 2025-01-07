@@ -34,7 +34,7 @@ impl Blockchain {
             tx.commit()?;
             result
         };
-        println!("{:?}",tip);
+        println!("{:?}", tip);
         Ok(Blockchain {
             hash_tip: Some(String::from_utf8(tip).unwrap()),
             db,
@@ -43,7 +43,7 @@ impl Blockchain {
 
     pub fn create_blockchain(address: String) -> Result<Self, Box<dyn Error>> {
         if Path::new(DB_PATH).exists() {
-            return Err("Blockchain does not exist.".into());
+            return Err("Blockchain already exists.".into());
         }
         let db = DB::open(DB_PATH)?;
         let tx = db.tx(true)?;

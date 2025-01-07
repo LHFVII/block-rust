@@ -67,10 +67,9 @@ impl Wallets {
         let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
         println!("{:?}", wallet_file.clone());
         fs::File::create(wallet_file.clone())?;
-        let mut wallets = Wallets {
+        let wallets = Wallets {
             wallets: HashMap::new(),
         };
-        wallets.load_from_file(node_id)?;
         Ok(wallets)
     }
 

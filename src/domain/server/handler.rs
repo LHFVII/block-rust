@@ -18,9 +18,17 @@ pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<
         }
     }
     let listener = result.unwrap();
-    println!("Creating blockchain ");
-    let bc = Blockchain::create_blockchain(mining_address).unwrap();
+    let mut bc: Blockchain;
+    match Blockchain::create_blockchain(mining_address) {
+        Ok(blockchain) => {
+            bc = blockchain;
+        }
+        Err(e) => {
+            bc = Blockchain::new().unwrap();
+        }
+    }
     println!("Blockchain created");
+    println!("Listening...");
     for stream in listener.incoming() {
         println!("handling...");
         match stream {
@@ -36,6 +44,7 @@ pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<
 pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
     let buffer = &mut Vec::new();
     let request = conn.read_to_end(buffer);
+
     match request {
         Ok(res) => match res {
             1 => handle_address(),

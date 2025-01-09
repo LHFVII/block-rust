@@ -14,7 +14,7 @@ const VERSION: u8 = 0x00;
 const ADDRESS_CHECKSUM_LEN: usize = 4;
 const WALLET_FILE: &str = ".dat";
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Wallet {
     pub private_key: SecretKey,
     pub public_key: PublicKey,
@@ -57,7 +57,7 @@ pub fn checksum(payload: &Vec<u8>) -> Vec<u8> {
     let second_sha = Sha256::digest(first_sha);
     second_sha[..ADDRESS_CHECKSUM_LEN].to_vec()
 }
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Wallets {
     pub wallets: HashMap<String, Wallet>,
 }
@@ -65,8 +65,29 @@ pub struct Wallets {
 impl Wallets {
     pub fn new(node_id: String) -> Result<Self, Box<dyn std::error::Error>> {
         let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
-        println!("{:?}", wallet_file.clone());
-        fs::File::create(wallet_file.clone())?;
+        let path = Path::new(&wallet_file);
+        if path.exists() {
+            let mut file = fs::File::open(path)?;
+            let mut content = Vec::new();
+            file.read_to_end(&mut content)?;
+            let loaded_wallets: Wallets = bincode::deserialize(&content)?;
+            let mut wallets: HashMap<String, Wallet> = HashMap::new();
+            for (_key, wallet) in &loaded_wallets.wallets {
+                let current_wallet = Wallet {
+                    private_key: wallet.private_key,
+                    public_key: wallet.public_key,
+                };
+                wallets.insert(
+                    String::from_utf8_lossy(&wallet.get_address()).to_string(),
+                    current_wallet,
+                );
+            }
+            let wallets = Wallets {
+                wallets: HashMap::new(),
+            };
+            return Ok(wallets);
+        }
+        fs::File::create(wallet_file)?;
         let wallets = Wallets {
             wallets: HashMap::new(),
         };
@@ -79,10 +100,12 @@ impl Wallets {
         let stringified_address = String::from_utf8_lossy(&address).to_string();
         println!("Stringified address is {}", stringified_address);
         self.wallets.insert(stringified_address, wallet);
+        println!("{:?}", self.wallets);
         address
     }
 
     pub fn get_addresses(&self) -> Vec<String> {
+        println!("{:?}", self.wallets);
         self.wallets.keys().cloned().collect()
     }
 
@@ -117,8 +140,12 @@ impl Wallets {
 
     pub fn save_to_file(&self, node_id: String) -> Result<(), Box<dyn std::error::Error>> {
         let wallet_file = format!("wallet{}{}", node_id, WALLET_FILE);
+        let path = Path::new(&wallet_file);
+        if !path.exists() {
+            return Err("File not found".into());
+        }
+        let mut file = fs::File::create(path)?;
         let content = bincode::serialize(&self)?;
-        let mut file = fs::File::create(wallet_file)?;
         file.write_all(&content)?;
         Ok(())
     }

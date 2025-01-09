@@ -235,7 +235,7 @@ impl CLI {
     fn show_commands(&mut self) {
         println!(
             r#"COMMANDS:
-    1) create-wallet - creates a wallet and saves it into the wallets file. Returns the address.
+    1) create-wallet <node_id> - creates a wallet and saves it into the wallets file. Returns the address.
     2) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
     3) get-balance <address> - Gets the balance of an address
     4) list-addresses <node_id> - Lists all available addresses

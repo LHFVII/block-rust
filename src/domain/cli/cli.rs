@@ -118,7 +118,7 @@ impl CLI {
 
     fn create_wallet(&self, node_id: String) {
         let mut wallets = Wallets::new(node_id.clone()).unwrap();
-        let address = wallets.create_wallet();
+        wallets.create_wallet();
         let _ = wallets.save_to_file(node_id);
     }
 

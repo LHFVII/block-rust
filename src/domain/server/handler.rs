@@ -44,7 +44,7 @@ pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<
 pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
     let buffer = &mut Vec::new();
     let request = conn.read_to_end(buffer);
-
+    println!("request received");
     match request {
         Ok(res) => match res {
             1 => handle_address(),

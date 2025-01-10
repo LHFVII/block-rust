@@ -82,9 +82,7 @@ impl Wallets {
                     current_wallet,
                 );
             }
-            let wallets = Wallets {
-                wallets: HashMap::new(),
-            };
+            let wallets = Wallets { wallets: wallets };
             return Ok(wallets);
         }
         fs::File::create(wallet_file)?;
@@ -98,14 +96,11 @@ impl Wallets {
         let wallet = Wallet::new();
         let address = wallet.get_address();
         let stringified_address = String::from_utf8_lossy(&address).to_string();
-        println!("Stringified address is {}", stringified_address);
         self.wallets.insert(stringified_address, wallet);
-        println!("{:?}", self.wallets);
         address
     }
 
     pub fn get_addresses(&self) -> Vec<String> {
-        println!("{:?}", self.wallets);
         self.wallets.keys().cloned().collect()
     }
 
@@ -144,6 +139,7 @@ impl Wallets {
         if !path.exists() {
             return Err("File not found".into());
         }
+        println!("{:?}", self.wallets);
         let mut file = fs::File::create(path)?;
         let content = bincode::serialize(&self)?;
         file.write_all(&content)?;

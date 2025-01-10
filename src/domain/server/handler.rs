@@ -6,7 +6,6 @@ use crate::domain::Blockchain;
 
 pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<()> {
     let mining_address = miner_address;
-    println!("Creating listener ");
     let result = TcpListener::bind("127.0.0.1:8000");
     match &result {
         Ok(_) => {
@@ -30,7 +29,6 @@ pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<
     println!("Blockchain created");
     println!("Listening...");
     for stream in listener.incoming() {
-        println!("handling...");
         match stream {
             Ok(conn) => handle_connection(conn, &bc),
             Err(e) => {
@@ -42,16 +40,23 @@ pub fn start_server(_node_id: String, miner_address: String) -> std::io::Result<
 }
 
 pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
-    let buffer = &mut Vec::new();
-    let request = conn.read_to_end(buffer);
-    println!("request received");
-    match request {
-        Ok(res) => match res {
-            1 => handle_address(),
-            2 => handle_get_blocks(request.unwrap(), bc),
-            _ => println!("Unknown command!"),
-        },
-        Err(_) => eprintln!(""),
+    let mut command_buf = [0u8; 1];
+    match conn.read_exact(&mut command_buf) {
+        Ok(_) => {
+            let command = command_buf[0];
+            println!("Received command: {}", command);
+            match command {
+                1 => handle_address(),
+                2 => {
+                    let mut data = Vec::new();
+                    if let Ok(_) = conn.read_to_end(&mut data) {
+                        handle_get_blocks(data.len(), bc);
+                    }
+                }
+                _ => println!("Unknown command: {}", command),
+            }
+        }
+        Err(e) => eprintln!("Error reading from connection: {}", e),
     }
 }
 

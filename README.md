@@ -4,11 +4,8 @@ The networking primitives are WIP
 
 To do: 
 
--Add address validation for miner_address (Done)
--Suggest Address
--Solve issue related to list addresses -> WIP
+-Add address validation for miner_address -> Done
+-Suggest Address -> Done
+-Solve issue related to list addresses -> Done
 -Pick up already existing blockchain -> WIP
-
-
-
-1Kb2Hm1fZPhq2vJ9sZFdx4gA1Qk7W9BpzJ
+-Implement handle address logic -> WIP

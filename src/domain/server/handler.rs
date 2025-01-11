@@ -46,7 +46,9 @@ pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
             let command = command_buf[0];
             println!("Received command: {}", command);
             match command {
-                1 => handle_address(),
+                1 => {
+                    handle_address(conn);
+                }
                 2 => {
                     let mut data = Vec::new();
                     if let Ok(_) = conn.read_to_end(&mut data) {
@@ -60,8 +62,18 @@ pub fn handle_connection(mut conn: TcpStream, bc: &Blockchain) {
     }
 }
 
-pub fn handle_address() {
-    println!("handling address...")
+pub fn handle_address(mut conn: TcpStream) {
+    let mut buffer = Vec::new();
+    match conn.read_to_end(&mut buffer) {
+        Ok(_) => {
+            if let Ok(address) = String::from_utf8(buffer) {
+                println!("handling address: {:?}...", address)
+            } else {
+                eprintln!("Invalid UTF-8 in address");
+            }
+        }
+        Err(e) => eprintln!("Error reading address data: {}", e),
+    }
 }
 
 pub fn handle_get_blocks(_request: usize, _bc: &Blockchain) {

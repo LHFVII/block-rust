@@ -1,7 +1,7 @@
-use crate::domain::start_server;
 use crate::domain::validate_address;
 use crate::domain::Blockchain;
 use crate::domain::ProofOfWork;
+use crate::domain::Server;
 use crate::domain::Transaction;
 use crate::domain::UTXOSet;
 use crate::domain::Wallets;
@@ -229,7 +229,8 @@ impl CLI {
             eprintln!("Invalid address");
             return;
         }
-        let _ = start_server(node_id, miner_address);
+        let server = &mut Server::new();
+        let _ = server.start_server(node_id, miner_address);
     }
 
     fn show_commands(&mut self) {

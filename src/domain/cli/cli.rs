@@ -1,9 +1,5 @@
 use crate::domain::validate_address;
-use crate::domain::Blockchain;
-use crate::domain::ProofOfWork;
 use crate::domain::Server;
-use crate::domain::Transaction;
-use crate::domain::UTXOSet;
 use crate::domain::Wallets;
 use clap::{command, Parser, Subcommand};
 
@@ -16,50 +12,22 @@ struct Args {
 
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
-    PrintChain,
-    CreateBlockchain {
-        address: String,
-    },
     CreateWallet {
         node_id: String,
     },
-    GetBalance {
-        address: String,
-    },
     ListAddresses {
         node_id: String,
-    },
-    Reindex,
-    Send {
-        from: String,
-        to: String,
-        amount: u32,
-        node_id: String,
-        mine_now: bool,
     },
     StartNode {
         node_id: String,
         miner_address: String,
     },
 }
-pub struct CLI {
-    pub bc: Option<Blockchain>,
-}
+pub struct CLI {}
 
 impl CLI {
     pub fn new() -> Self {
-        let bc = Blockchain::new();
-        match bc {
-            Ok(blockchain) => {
-                return CLI {
-                    bc: Some(blockchain),
-                }
-            }
-            Err(_) => {
-                eprintln!("No blockchain created, run the create-blockchain command first!");
-                return CLI { bc: None };
-            }
-        }
+        CLI {}
     }
 
     pub fn run(&mut self) {
@@ -74,19 +42,8 @@ impl CLI {
             args.extend(shlex::split(line).ok_or("error: Invalid quoting").unwrap());
             match Args::try_parse_from(args) {
                 Ok(cli) => match cli.cmd {
-                    Commands::PrintChain => self.print_chain(),
-                    Commands::CreateBlockchain { address } => self.create_blockchain(address),
                     Commands::CreateWallet { node_id } => self.create_wallet(node_id),
-                    Commands::GetBalance { address } => self.get_balance(address),
                     Commands::ListAddresses { node_id } => self.list_addresses(node_id),
-                    Commands::Reindex => self.reindex_utxo(),
-                    Commands::Send {
-                        from,
-                        to,
-                        amount,
-                        node_id,
-                        mine_now,
-                    } => self.send(from, to, amount, node_id, mine_now),
                     Commands::StartNode {
                         node_id,
                         miner_address,
@@ -97,32 +54,42 @@ impl CLI {
         }
     }
 
-    fn create_blockchain(&mut self, address: String) {
-        match Blockchain::create_blockchain(address) {
-            Ok(blockchain) => {
-                self.bc = Some(blockchain);
-                let mut utxo_set = UTXOSet {
-                    blockchain: self.bc.as_mut().unwrap(),
-                };
-                match utxo_set.reindex() {
-                    Ok(_) => println!("Done!"),
-                    Err(e) => eprintln!("Error reindexing the utxo set: {}", e),
-                }
-            }
-            Err(e) => {
-                eprintln!("Failed to create blockchain: {}", e);
-                eprintln!("Please re-run the create-blockchain command.");
-            }
-        }
-    }
-
     fn create_wallet(&self, node_id: String) {
         let mut wallets = Wallets::new(node_id.clone()).unwrap();
         wallets.create_wallet();
         let _ = wallets.save_to_file(node_id);
     }
 
-    fn get_balance(&mut self, address: String) {
+    fn list_addresses(&self, node_id: String) {
+        let wallets = Wallets::new(node_id).unwrap();
+        let addresses = wallets.get_addresses();
+        for address in addresses {
+            println!("Address is: {}", address);
+        }
+    }
+
+    fn start_server(&self, node_id: String, miner_address: String) {
+        if !validate_address(&miner_address) {
+            eprintln!("Invalid address");
+            return;
+        }
+        let server = &mut Server::new();
+        let _ = server.start_server(node_id, miner_address);
+    }
+
+    fn show_commands(&mut self) {
+        println!(
+            r#"COMMANDS:
+    1) create-wallet <node_id> - creates a wallet and saves it into the wallets file. Returns the address.
+    2) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
+    3) list-addresses <node_id> - Lists all available addresses
+    "#
+        );
+    }
+}
+
+/*
+fn get_balance(&mut self, address: String) {
         match self.bc {
             Some(_) => {
                 let utxo_set = UTXOSet {
@@ -139,15 +106,6 @@ impl CLI {
             ),
         }
     }
-
-    fn list_addresses(&self, node_id: String) {
-        let wallets = Wallets::new(node_id).unwrap();
-        let addresses = wallets.get_addresses();
-        for address in addresses {
-            println!("Address is: {}", address);
-        }
-    }
-
     fn send(&mut self, from: String, to: String, amount: u32, node_id: String, mine_now: bool) {
         if !validate_address(&from) {
             eprintln!("From address is not valid");
@@ -224,27 +182,5 @@ impl CLI {
         }
     }
 
-    fn start_server(&self, node_id: String, miner_address: String) {
-        if !validate_address(&miner_address) {
-            eprintln!("Invalid address");
-            return;
-        }
-        let server = &mut Server::new();
-        let _ = server.start_server(node_id, miner_address);
-    }
 
-    fn show_commands(&mut self) {
-        println!(
-            r#"COMMANDS:
-    1) create-wallet <node_id> - creates a wallet and saves it into the wallets file. Returns the address.
-    2) start-node <node_id> <miner_address> - Start a node with ID specificied in NODE_ID
-    3) get-balance <address> - Gets the balance of an address
-    4) list-addresses <node_id> - Lists all available addresses
-    5) print-chain - Shows all blocks that belong to the current blockchain.
-    6) reindex - Rebuild the UTXO set
-    7) send <from> <to> <amount> - Sends an amount of coins from an address to another
-    8) create-blockchain -address ADDRESS - Create a blockchain and send genesis block reward to ADDRESS
-    "#
-        );
-    }
-}
+    */

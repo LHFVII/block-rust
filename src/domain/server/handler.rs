@@ -1,11 +1,8 @@
-use std::io::Read;
-use std::io::Write;
-use std::net::TcpListener;
-use std::net::TcpStream;
-
-use crate::domain::block;
 use crate::domain::validate_address;
 use crate::domain::Blockchain;
+use std::io::Read;
+use std::net::TcpListener;
+use std::net::TcpStream;
 
 pub struct Server {
     pub known_nodes: Vec<String>,

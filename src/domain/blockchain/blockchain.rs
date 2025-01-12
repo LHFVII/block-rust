@@ -27,7 +27,7 @@ impl Blockchain {
                     .map(|data| data.kv().value().to_vec())
                     .unwrap_or_else(Vec::new),
                 Err(_) => {
-                    println!("Error: Bucket not found");
+                    eprintln!("Error: Bucket not found");
                     return Err("Bucket not found".into());
                 }
             };
@@ -45,6 +45,7 @@ impl Blockchain {
         if Path::new(DB_PATH).exists() {
             return Err("Blockchain already exists.".into());
         }
+        println!("New blockchain");
         let db = DB::open(DB_PATH)?;
         let tx = db.tx(true)?;
         let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;

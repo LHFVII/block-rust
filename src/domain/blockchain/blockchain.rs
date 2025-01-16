@@ -186,4 +186,12 @@ impl Blockchain {
         }
         return transaction.clone().verify(prev_txs).unwrap();
     }
+
+    pub fn get_block_hashes(&mut self) -> Vec<String> {
+        let mut hashes = Vec::<String>::new();
+        for block in self.next() {
+            hashes.push(block.hash);
+        }
+        return hashes;
+    }
 }

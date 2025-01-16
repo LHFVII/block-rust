@@ -88,49 +88,30 @@ impl Server {
             Err(e) => eprintln!("Error reading address data: {}", e),
         }
     }
-    /*
-    pub fn request_blocks(&mut self) {
+
+    pub fn request_blocks(&mut self, bc: &mut Blockchain) {
         println!("Requesting blocks");
-        for node in &mut self.known_nodes {
-            self.handle_get_blocks(node.as_str());
+        for node in self.known_nodes.clone() {
+            self.handle_get_blocks(node.as_str(), bc);
         }
     }
-    pub fn send_get_blocks(&mut self, node: &str) {
-        println!("Sending get blocks");
-    }
 
-    pub fn handle_get_blocks(&mut self, bc: &Blockchain) {
+    pub fn handle_get_blocks(&mut self, address: &str, bc: &mut Blockchain) {
         println!("handling get blocks...");
-        let mut buffer = Vec::new();
+
         let blocks = bc.get_block_hashes();
-        self.handle_inv(address, blocks);
+        self.handle_inv_block(address, blocks);
     }
-    pub fn handle_inv(&mut self, address: &str, blocks: usize){
-        let mut buffer = Vec::new();
-        let items = "";
-        let payload_type = "";
-        println!("Received inventory with {:?} {:?}", items, payload_type );
-        match payload_type {
-            "block" =>{
-                println!("Received block");
-                let blocks_in_transit = payload.Items;
-                let block_hash = payload.Items[0];
-                sendGetData(payload.AddrFrom, "block", block_hash);
 
-            let mut new_in_transit: Vec<Vec<u8>> = vec![vec![]];
-            for (k,v) in blocks_in_transit{
-                if bytes.Compare(v, block_hash) != 0 {
-                    new_in_transit.push(block_hash);
-                }
-            }
-            },
-            "tx"=>{
-                println!("Received tx");
-                let mut tx_id := payload.Items[0];
+    pub fn handle_inv_block(&mut self, address: &str, blocks: Vec<String>) {
+        let block_hash = blocks[0].clone().into_bytes();
+        //sendGetData(payload.AddrFrom, "block", block_hash);
 
-            if mempool[hex.EncodeToString(txID)].ID == nil {
-                sendGetData(payload.AddrFrom, "tx", txID);
+        let mut new_in_transit: Vec<Vec<u8>> = vec![vec![]];
+        for block in blocks {
+            if block.into_bytes() < block_hash.clone() {
+                new_in_transit.push(block_hash.clone());
             }
-            }
-        }*/
+        }
+    }
 }

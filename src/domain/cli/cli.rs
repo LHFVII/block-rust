@@ -73,7 +73,7 @@ impl CLI {
             eprintln!("Invalid address");
             return;
         }
-        let server = &mut Server::new();
+        let server = &mut Server::new(String::from("localhost:3000"), miner_address.clone());
         let _ = server.start_server(node_id, miner_address);
     }
 

@@ -66,6 +66,9 @@ impl Server {
                     2 => {
                         self.request_blocks(bc);
                     }
+                    3 => {
+                        self.handle_get_blocks(bc);
+                    }
                     _ => println!("Unknown command: {}", command),
                 }
             }
@@ -93,15 +96,16 @@ impl Server {
 
     pub fn request_blocks(&mut self, bc: &mut Blockchain) {
         println!("Requesting blocks");
-        for node in self.known_nodes.clone() {
+        /*for node in self.known_nodes.clone() {
             self.handle_get_blocks(node.as_str(), bc);
-        }
+        }*/
     }
 
-    pub fn handle_get_blocks(&mut self, address: &str, bc: &mut Blockchain) {
+    pub fn handle_get_blocks(&mut self, bc: &mut Blockchain) {
         println!("handling get blocks...");
         let blocks = bc.get_block_hashes();
-        self.handle_inv_block(address, blocks);
+        println!("Blocks are: {:?}", blocks);
+        //self.handle_inv_block(address, blocks);
     }
 
     pub fn handle_inv_block(&mut self, address: &str, blocks: Vec<String>) {

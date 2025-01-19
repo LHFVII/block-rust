@@ -29,8 +29,8 @@ impl CLI {
     pub fn new() -> Self {
         CLI {}
     }
-
-    pub fn run(&mut self) {
+    #[tokio::main]
+    pub async fn run(&mut self) {
         loop {
             self.show_commands();
             let mut buf = String::new();
@@ -47,7 +47,7 @@ impl CLI {
                     Commands::StartNode {
                         node_id,
                         miner_address,
-                    } => self.start_server(node_id, miner_address),
+                    } => self.start_server(node_id, miner_address).await,
                 },
                 Err(e) => println!("That's not a valid command! Error: {}", e),
             };
@@ -68,13 +68,14 @@ impl CLI {
         }
     }
 
-    fn start_server(&self, node_id: String, miner_address: String) {
+    async fn start_server(&self, node_id: String, miner_address: String) {
         if !validate_address(&miner_address) {
             eprintln!("Invalid address");
             return;
         }
         let server = &mut Server::new(String::from("localhost:3000"), miner_address.clone());
-        let _ = server.start_server(node_id, miner_address);
+        println!("New server");
+        let _ = server.start_server(node_id, miner_address).await;
     }
 
     fn show_commands(&mut self) {

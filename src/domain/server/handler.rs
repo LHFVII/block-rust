@@ -41,10 +41,10 @@ impl Server {
         }
         let listener = TcpListener::bind("127.0.0.1:8000").await?;
         loop {
+            println!("listening");
             let (socket, _) = listener.accept().await?;
             self.handle_connection(socket, &mut bc).await;
         }
-        Ok(())
     }
 
     pub async fn handle_connection(&mut self, mut conn: TcpStream, bc: &mut Blockchain) {
@@ -57,7 +57,7 @@ impl Server {
                 println!("Received command: {}", command);
                 match command {
                     1 => {
-                        self.handle_address(conn);
+                        self.handle_address(conn).await;
                     }
                     2 => {
                         self.request_blocks(bc);
@@ -69,10 +69,9 @@ impl Server {
         }
     }
 
-    pub async fn handle_address(&mut self, mut conn: TcpStream) {
+    pub async fn handle_address(&mut self, conn: TcpStream) {
         let mut buffer = Vec::new();
         conn.readable().await;
-
         match conn.try_read(&mut buffer) {
             Ok(_) => {
                 if let Ok(address) = String::from_utf8(buffer) {

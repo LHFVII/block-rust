@@ -1,5 +1,4 @@
 mod domain;
-
 use domain::cli::CLI;
 
 fn main() {

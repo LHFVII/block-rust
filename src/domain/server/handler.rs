@@ -2,6 +2,7 @@ use crate::domain::validate_address;
 use crate::domain::Blockchain;
 use crate::domain::Transaction;
 use std::collections::HashMap;
+use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
 
@@ -47,9 +48,12 @@ impl Server {
         }
     }
 
-    pub async fn handle_connection(&mut self, mut conn: TcpStream, bc: &mut Blockchain) {
-        let mut command_buf = [0u8; 1];
-        conn.readable().await;
+    pub async fn handle_connection(&mut self, conn: TcpStream, bc: &mut Blockchain) {
+        let mut command_buf = [0; 1024];
+        let _result = conn
+            .readable()
+            .await
+            .map_err(|_| println!("Something went wrong"));
 
         match conn.try_read(&mut command_buf) {
             Ok(_) => {
@@ -57,7 +61,7 @@ impl Server {
                 println!("Received command: {}", command);
                 match command {
                     1 => {
-                        self.handle_address(conn).await;
+                        self.handle_address(command_buf, conn).await;
                     }
                     2 => {
                         self.request_blocks(bc);
@@ -69,28 +73,22 @@ impl Server {
         }
     }
 
-    pub async fn handle_address(&mut self, conn: TcpStream) {
-        let mut buffer = Vec::new();
-        conn.readable().await;
-        match conn.try_read(&mut buffer) {
-            Ok(_) => {
-                if let Ok(address) = String::from_utf8(buffer) {
-                    println!("handling address: {:?}...", address);
-                    if !validate_address(&address) {
-                        eprintln!("Invalid address");
-                        return;
-                    }
-                    if self.known_nodes.contains(&address) {
-                        eprintln!("Address is already known");
-                        return;
-                    }
-                    self.known_nodes.push(address);
-                } else {
-                    eprintln!("Invalid UTF-8 in address");
-                }
-            }
-            Err(e) => eprintln!("Error reading address data: {}", e),
+    pub async fn handle_address(&mut self, command_buf: [u8; 1024], mut conn: TcpStream) {
+        let command_two = &command_buf[1..35];
+        let address = match std::str::from_utf8(command_two) {
+            Ok(v) => v,
+            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        };
+        if !validate_address(address) {
+            eprintln!("Invalid address");
+            let _ = conn.write_all("Invalid address".as_bytes()).await;
+            return;
         }
+        if self.known_nodes.contains(&address.to_string()) {
+            eprintln!("Address is already known");
+            return;
+        }
+        self.known_nodes.push(address.to_string());
     }
 
     pub fn request_blocks(&mut self, bc: &mut Blockchain) {

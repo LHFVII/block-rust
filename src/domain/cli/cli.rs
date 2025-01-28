@@ -38,7 +38,7 @@ impl CLI {
                 .read_line(&mut buf)
                 .expect("Couldn't parse stdin");
             let line = buf.trim();
-            let mut args = vec!["program".to_string()]; // Add a dummy program name
+            let mut args = vec!["program".to_string()];
             args.extend(shlex::split(line).ok_or("error: Invalid quoting").unwrap());
             match Args::try_parse_from(args) {
                 Ok(cli) => match cli.cmd {
@@ -74,7 +74,6 @@ impl CLI {
             return;
         }
         let server = &mut Server::new(String::from("localhost:3000"), miner_address.clone());
-        println!("New server");
         let _ = server.start_server(node_id, miner_address).await;
     }
 

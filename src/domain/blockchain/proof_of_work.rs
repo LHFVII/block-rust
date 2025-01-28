@@ -43,10 +43,7 @@ impl ProofOfWork {
             } else {
                 nonce += 1;
             }
-            println!("{:?}", hash_int);
-            println!("\n\n");
         }
-        println!("\n\n");
         (nonce, hash)
     }
 }

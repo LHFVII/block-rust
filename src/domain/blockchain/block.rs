@@ -27,8 +27,8 @@ impl Block {
             nonce: 0,
         };
         let pow = ProofOfWork::new(block.clone());
-        let (nonce, _) = pow.run();
-        block.hash = String::from("");
+        let (nonce, hash) = pow.run();
+        block.hash = hex::encode(hash);
         block.nonce = nonce;
         block
     }

@@ -30,7 +30,6 @@ impl Server {
         miner_address: String,
     ) -> std::io::Result<()> {
         let mining_address = miner_address;
-
         let mut bc: Blockchain;
         match Blockchain::create_blockchain(mining_address) {
             Ok(blockchain) => {
@@ -68,6 +67,9 @@ impl Server {
                     }
                     3 => {
                         self.handle_get_blocks(bc);
+                    }
+                    4 => {
+                        self.print_blockchain(bc);
                     }
                     _ => println!("Unknown command: {}", command),
                 }
@@ -115,6 +117,11 @@ impl Server {
             if block.into_bytes() < block_hash.clone() {
                 new_in_transit.push(block_hash.clone());
             }
+        }
+    }
+    pub fn print_blockchain(&mut self, bc: &mut Blockchain) {
+        for block in bc.next() {
+            println!("{:?}", block)
         }
     }
 }

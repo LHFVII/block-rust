@@ -34,7 +34,6 @@ impl Blockchain {
             tx.commit()?;
             result
         };
-        println!("{:?}", tip);
         Ok(Blockchain {
             hash_tip: Some(String::from_utf8(tip).unwrap()),
             db,
@@ -45,7 +44,6 @@ impl Blockchain {
         if Path::new(DB_PATH).exists() {
             return Err("Blockchain already exists.".into());
         }
-        println!("New blockchain");
         let db = DB::open(DB_PATH)?;
         let tx = db.tx(true)?;
         let block_bucket = tx.create_bucket(BLOCKS_BUCKET)?;
@@ -99,8 +97,21 @@ impl Blockchain {
             self.hash_tip = Some(block.prev_block_hash.clone());
             Some(block)
         } else {
-            println!("Nothing was found");
-            self.hash_tip = Some(String::from("tip"));
+            let tip = {
+                let result = match tx.get_bucket(BLOCKS_BUCKET) {
+                    Ok(bucket) => bucket
+                        .get("tip")
+                        .map(|data| data.kv().value().to_vec())
+                        .unwrap_or_else(Vec::new),
+                    Err(_) => {
+                        eprintln!("Error: Bucket not found");
+                        return None;
+                    }
+                };
+                tx.commit();
+                result
+            };
+            self.hash_tip = Some(String::from_utf8(tip).unwrap());
             None
         }
     }

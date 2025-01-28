@@ -2,6 +2,7 @@ use crate::domain::validate_address;
 use crate::domain::Server;
 use crate::domain::Wallets;
 use clap::{command, Parser, Subcommand};
+use log::{error, info};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -31,6 +32,7 @@ impl CLI {
     }
     #[tokio::main]
     pub async fn run(&mut self) {
+        env_logger::builder().format_timestamp_micros().init();
         loop {
             self.show_commands();
             let mut buf = String::new();
@@ -49,7 +51,7 @@ impl CLI {
                         miner_address,
                     } => self.start_server(node_id, miner_address).await,
                 },
-                Err(e) => println!("That's not a valid command! Error: {}", e),
+                Err(e) => error!("That's not a valid command! Error: {}", e),
             };
         }
     }
@@ -70,7 +72,7 @@ impl CLI {
 
     async fn start_server(&self, node_id: String, miner_address: String) {
         if !validate_address(&miner_address) {
-            eprintln!("Invalid address");
+            error!("Invalid address");
             return;
         }
         let server = &mut Server::new(String::from("localhost:3000"), miner_address.clone());

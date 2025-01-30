@@ -199,4 +199,8 @@ impl Transaction {
         }
         Ok(true)
     }
+
+    pub fn calculate_transaction_priority(tx: Transaction, blocks_elapsed: u32) -> u32 {
+        return 1;
+    }
 }

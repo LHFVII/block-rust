@@ -63,7 +63,7 @@ impl Blockchain {
 
     pub fn mine_block(&mut self, transactions: Vec<Transaction>) -> Result<Block, Box<dyn Error>> {
         for transaction in transactions.clone() {
-            let verified = self.verify_transaction(transaction);
+            let verified = self.verify_transaction(&transaction);
             println!("Transactions verified successfully: {}", verified)
         }
 
@@ -186,7 +186,7 @@ impl Blockchain {
         }
         transaction.sign(private_key, prev_txs);
     }
-    pub fn verify_transaction(&mut self, transaction: Transaction) -> bool {
+    pub fn verify_transaction(&mut self, transaction: &Transaction) -> bool {
         if transaction.is_coinbase() {
             return true;
         }

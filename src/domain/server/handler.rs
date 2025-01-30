@@ -1,4 +1,6 @@
+use crate::domain::blockchain;
 use crate::domain::validate_address;
+use crate::domain::Block;
 use crate::domain::Blockchain;
 use crate::domain::Transaction;
 use std::collections::HashMap;
@@ -48,7 +50,7 @@ impl Server {
     }
 
     pub async fn handle_connection(&mut self, conn: TcpStream, bc: &mut Blockchain) {
-        let mut command_buf = [0; 1024];
+        let mut command_buf: [u8; 1024] = [0; 1024];
         let _result = conn
             .readable()
             .await
@@ -60,10 +62,10 @@ impl Server {
                 println!("Received command: {}", command);
                 match command {
                     1 => {
-                        self.handle_address(command_buf, conn).await;
+                        self.add_transaction_to_mem_pool(&command_buf, bc).await;
                     }
                     2 => {
-                        self.request_blocks(bc);
+                        self.add_known_node(command_buf, conn).await;
                     }
                     3 => {
                         self.handle_get_blocks(bc);
@@ -78,7 +80,7 @@ impl Server {
         }
     }
 
-    pub async fn handle_address(&mut self, command_buf: [u8; 1024], mut conn: TcpStream) {
+    pub async fn add_known_node(&mut self, command_buf: [u8; 1024], mut conn: TcpStream) {
         let command_two = &command_buf[1..35];
         let address = match std::str::from_utf8(command_two) {
             Ok(v) => v,
@@ -98,9 +100,6 @@ impl Server {
 
     pub fn request_blocks(&mut self, bc: &mut Blockchain) {
         println!("Requesting blocks");
-        /*for node in self.known_nodes.clone() {
-            self.handle_get_blocks(node.as_str(), bc);
-        }*/
     }
 
     pub fn handle_get_blocks(&mut self, bc: &mut Blockchain) {
@@ -123,5 +122,13 @@ impl Server {
         for block in bc.next() {
             println!("{:?}", block)
         }
+    }
+    pub async fn add_transaction_to_mem_pool(&mut self, command_buf: &[u8], bc: &mut Blockchain) {
+        let incoming_tx: Transaction = bincode::deserialize(command_buf).expect("REASON");
+        if !bc.verify_transaction(&incoming_tx) {
+            eprintln!("invalid transaction");
+        }
+        let id_hash = hex::encode(incoming_tx.id.clone());
+        self.mem_pool.insert(id_hash, incoming_tx);
     }
 }

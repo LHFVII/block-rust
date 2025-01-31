@@ -1,12 +1,18 @@
-use crate::domain::blockchain;
 use crate::domain::validate_address;
-use crate::domain::Block;
 use crate::domain::Blockchain;
 use crate::domain::Transaction;
 use std::collections::HashMap;
+use std::thread;
+use std::time::Duration;
 use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
+use tokio::sync::mpsc;
+
+enum NodeMessage {
+    Stop,
+    Restart,
+}
 
 pub struct Server {
     pub node_address: String,
@@ -41,61 +47,38 @@ impl Server {
                 bc = Blockchain::new().unwrap();
             }
         }
+        let (tx, rx) = mpsc::channel(10);
         let listener = TcpListener::bind("127.0.0.1:8000").await?;
+        tokio::spawn(async move { start_mining_thread(rx) });
         loop {
-            println!("listening");
+            println!("listening...");
             let (socket, _) = listener.accept().await?;
-            self.handle_connection(socket, &mut bc).await;
-        }
-    }
-
-    pub async fn handle_connection(&mut self, conn: TcpStream, bc: &mut Blockchain) {
-        let mut command_buf: [u8; 1024] = [0; 1024];
-        let _result = conn
-            .readable()
-            .await
-            .map_err(|_| println!("Something went wrong"));
-
-        match conn.try_read(&mut command_buf) {
-            Ok(_) => {
-                let command = command_buf[0];
-                println!("Received command: {}", command);
-                match command {
-                    1 => {
-                        self.add_transaction_to_mem_pool(&command_buf, bc).await;
+            let tx = tx.clone();
+            tokio::spawn(async move {
+                let mut command_buf: [u8; 1024] = [0; 1024];
+                loop {
+                    match socket.try_read(&mut command_buf) {
+                        Ok(_) => {
+                            let command = command_buf[0];
+                            println!("Received command: {}", command);
+                            match command {
+                                1 => {
+                                    add_transaction_to_mem_pool().await;
+                                }
+                                2 => {
+                                    let _ = tx.send(NodeMessage::Restart).await;
+                                }
+                                3 => {
+                                    let _ = tx.send(NodeMessage::Stop).await;
+                                }
+                                _ => println!("Unknown command: {}", command),
+                            }
+                        }
+                        Err(e) => eprintln!("Error reading from connection: {}", e),
                     }
-                    2 => {
-                        self.add_known_node(command_buf, conn).await;
-                    }
-                    3 => {
-                        self.handle_get_blocks(bc);
-                    }
-                    4 => {
-                        self.print_blockchain(bc);
-                    }
-                    _ => println!("Unknown command: {}", command),
                 }
-            }
-            Err(e) => eprintln!("Error reading from connection: {}", e),
+            });
         }
-    }
-
-    pub async fn add_known_node(&mut self, command_buf: [u8; 1024], mut conn: TcpStream) {
-        let command_two = &command_buf[1..35];
-        let address = match std::str::from_utf8(command_two) {
-            Ok(v) => v,
-            Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
-        };
-        if !validate_address(address) {
-            eprintln!("Invalid address");
-            let _ = conn.write_all("Invalid address".as_bytes()).await;
-            return;
-        }
-        if self.known_nodes.contains(&address.to_string()) {
-            eprintln!("Address is already known");
-            return;
-        }
-        self.known_nodes.push(address.to_string());
     }
 
     pub fn request_blocks(&mut self, bc: &mut Blockchain) {
@@ -118,17 +101,44 @@ impl Server {
             }
         }
     }
-    pub fn print_blockchain(&mut self, bc: &mut Blockchain) {
-        for block in bc.next() {
-            println!("{:?}", block)
+}
+pub async fn add_transaction_to_mem_pool() {
+    todo!()
+}
+
+pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
+    let mut is_mining = true;
+    let mut counter = 0;
+    loop {
+        match rx.try_recv() {
+            Ok(message) => match message {
+                NodeMessage::Stop => {
+                    println!("Mining paused");
+                    is_mining = false;
+                }
+                NodeMessage::Restart => {
+                    println!("Resuming mining...");
+                    is_mining = true;
+                }
+            },
+            Err(mpsc::error::TryRecvError::Empty) => {
+                if is_mining {
+                    thread::sleep(Duration::from_millis(5000));
+                    println!("{:?} ⛏️Mining...", counter);
+                }
+            }
+            Err(mpsc::error::TryRecvError::Disconnected) => {
+                println!("Channel disconnected, stopping mining");
+                break;
+            }
         }
-    }
-    pub async fn add_transaction_to_mem_pool(&mut self, command_buf: &[u8], bc: &mut Blockchain) {
-        let incoming_tx: Transaction = bincode::deserialize(command_buf).expect("REASON");
-        if !bc.verify_transaction(&incoming_tx) {
-            eprintln!("invalid transaction");
-        }
-        let id_hash = hex::encode(incoming_tx.id.clone());
-        self.mem_pool.insert(id_hash, incoming_tx);
+        counter += 1;
     }
 }
+pub fn print_blockchain() {
+    println!("Printing blockchain")
+}
+pub async fn add_known_node(address: String) {
+    println!("adding to known nodes");
+}
+pub async fn stop_mining() {}

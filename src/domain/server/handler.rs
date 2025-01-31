@@ -56,26 +56,24 @@ impl Server {
             let tx = tx.clone();
             tokio::spawn(async move {
                 let mut command_buf: [u8; 1024] = [0; 1024];
-                loop {
-                    match socket.try_read(&mut command_buf) {
-                        Ok(_) => {
-                            let command = command_buf[0];
-                            println!("Received command: {}", command);
-                            match command {
-                                1 => {
-                                    add_transaction_to_mem_pool().await;
-                                }
-                                2 => {
-                                    let _ = tx.send(NodeMessage::Restart).await;
-                                }
-                                3 => {
-                                    let _ = tx.send(NodeMessage::Stop).await;
-                                }
-                                _ => println!("Unknown command: {}", command),
+                match socket.try_read(&mut command_buf) {
+                    Ok(_) => {
+                        let command = command_buf[0];
+                        println!("Received command: {}", command);
+                        match command {
+                            1 => {
+                                add_transaction_to_mem_pool().await;
                             }
+                            2 => {
+                                let _ = tx.send(NodeMessage::Restart).await;
+                            }
+                            3 => {
+                                let _ = tx.send(NodeMessage::Stop).await;
+                            }
+                            _ => println!("Unknown command: {}", command),
                         }
-                        Err(e) => eprintln!("Error reading from connection: {}", e),
                     }
+                    Err(e) => eprintln!("Error reading from connection: {}", e),
                 }
             });
         }
@@ -125,6 +123,7 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
                 if is_mining {
                     thread::sleep(Duration::from_millis(5000));
                     println!("{:?} ⛏️Mining...", counter);
+                    counter += 1;
                 }
             }
             Err(mpsc::error::TryRecvError::Disconnected) => {
@@ -132,7 +131,6 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
                 break;
             }
         }
-        counter += 1;
     }
 }
 pub fn print_blockchain() {

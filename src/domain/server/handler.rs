@@ -52,7 +52,7 @@ impl Server {
         loop {
             println!("listening...");
             let (mut socket, _) = listener.accept().await?;
-            let mem = mem_pool.clone();
+            let mem = Arc::clone(&mem_pool);
             let tx = tx.clone();
             tokio::spawn(async move {
                 let mut command_buf: [u8; 1024] = [0; 1024];

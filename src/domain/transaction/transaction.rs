@@ -1,13 +1,13 @@
 use super::{TxInput, TxOutput, UTXOSet};
 use crate::domain::{hash_pubkey, Wallet};
-use bincode::{deserialize, Error as BincodeError};
+use bincode::deserialize;
 use secp256k1::ecdsa::Signature;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::error::Error;
-use std::io::{self, Read};
+use std::io::{self};
 use tokio::io::AsyncReadExt;
 use tokio::net::TcpStream;
 

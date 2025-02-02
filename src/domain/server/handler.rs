@@ -1,17 +1,17 @@
-use crate::domain::validate_address;
 use crate::domain::Blockchain;
 use crate::domain::Transaction;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
-use tokio::io::AsyncWriteExt;
 use tokio::net::TcpListener;
-use tokio::net::TcpStream;
 use tokio::sync::mpsc;
 
 enum NodeMessage {
     Stop,
     Restart,
+    TxReceived,
 }
 
 pub struct Server {
@@ -19,7 +19,6 @@ pub struct Server {
     pub mining_address: String,
     pub known_nodes: Vec<String>,
     pub blocks_in_transit: Vec<Vec<u8>>,
-    pub mem_pool: HashMap<String, Transaction>,
 }
 
 impl Server {
@@ -29,7 +28,6 @@ impl Server {
             mining_address: mining_address,
             known_nodes: vec![],
             blocks_in_transit: vec![vec![]],
-            mem_pool: HashMap::<String, Transaction>::new(),
         };
     }
     pub async fn start_server(
@@ -49,10 +47,12 @@ impl Server {
         }
         let (tx, rx) = mpsc::channel(10);
         let listener = TcpListener::bind("127.0.0.1:8000").await?;
+        let mem_pool = Arc::new(Mutex::new(Vec::new()));
         tokio::spawn(async move { start_mining_thread(rx) });
         loop {
             println!("listening...");
-            let (socket, _) = listener.accept().await?;
+            let (mut socket, _) = listener.accept().await?;
+            let mem = mem_pool.clone();
             let tx = tx.clone();
             tokio::spawn(async move {
                 let mut command_buf: [u8; 1024] = [0; 1024];
@@ -62,7 +62,15 @@ impl Server {
                         println!("Received command: {}", command);
                         match command {
                             1 => {
-                                add_transaction_to_mem_pool().await;
+                                let mut buffer = Vec::new();
+                                match Transaction::from_tcp_stream(&mut socket, &mut buffer).await {
+                                    Ok(transaction) => {
+                                        mem.lock().unwrap().push(transaction);
+                                    }
+                                    Err(e) => {
+                                        eprintln!("Failed to read transaction: {}", e);
+                                    }
+                                }
                             }
                             2 => {
                                 let _ = tx.send(NodeMessage::Restart).await;
@@ -100,9 +108,6 @@ impl Server {
         }
     }
 }
-pub async fn add_transaction_to_mem_pool() {
-    todo!()
-}
 
 pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
     let mut is_mining = true;
@@ -111,10 +116,12 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
         match rx.try_recv() {
             Ok(message) => match message {
                 NodeMessage::Stop => {
-                    println!("Mining paused");
                     is_mining = false;
                 }
                 NodeMessage::Restart => {
+                    is_mining = true;
+                }
+                NodeMessage::TxReceived => {
                     println!("Resuming mining...");
                     is_mining = true;
                 }
@@ -140,3 +147,10 @@ pub async fn add_known_node(address: String) {
     println!("adding to known nodes");
 }
 pub async fn stop_mining() {}
+
+pub async fn create_generation_transaction(node_address: String) {
+    let reward = 20;
+    let coinbase_data = String::from("placeholder");
+    let generation_transaction: Transaction =
+        Transaction::new_generation_tx(node_address, reward, coinbase_data);
+}

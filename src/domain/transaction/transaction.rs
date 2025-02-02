@@ -1,11 +1,15 @@
 use super::{TxInput, TxOutput, UTXOSet};
 use crate::domain::{hash_pubkey, Wallet};
+use bincode::{deserialize, Error as BincodeError};
 use secp256k1::ecdsa::Signature;
 use secp256k1::{Message, PublicKey, Secp256k1, SecretKey};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::error::Error;
+use std::io::{self, Read};
+use tokio::io::AsyncReadExt;
+use tokio::net::TcpStream;
 
 const SUBSIDY: u32 = 10;
 
@@ -28,6 +32,23 @@ impl Transaction {
             pubkey: Some(data.into_bytes()),
         };
         let txout = TxOutput::new(SUBSIDY, to);
+        let tx = Transaction {
+            id: Vec::new(),
+            vin: vec![txin],
+            vout: vec![txout],
+        };
+        tx.hash();
+        return tx;
+    }
+
+    pub fn new_generation_tx(to: String, reward: u32, coin_base_data: String) -> Self {
+        let txin = TxInput {
+            txid: vec![],
+            vout: 0xFF,
+            signature: None,
+            pubkey: Some(coin_base_data.into_bytes()),
+        };
+        let txout = TxOutput::new(reward, to);
         let tx = Transaction {
             id: Vec::new(),
             vin: vec![txin],
@@ -202,5 +223,22 @@ impl Transaction {
 
     pub fn calculate_transaction_priority(tx: Transaction, blocks_elapsed: u32) -> u32 {
         return 1;
+    }
+    pub async fn from_tcp_stream(
+        stream: &mut TcpStream,
+        buf: &mut Vec<u8>,
+    ) -> Result<Self, io::Error> {
+        let mut size_buf = [0u8; 4];
+        stream.read_exact(&mut size_buf).await;
+        let expected_size = u32::from_le_bytes(size_buf) as usize;
+        buf.resize(expected_size, 0);
+        stream.read_exact(buf).await;
+        match deserialize(&buf[..]) {
+            Ok(transaction) => Ok(transaction),
+            Err(e) => Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!("Failed to deserialize transaction: {}", e),
+            )),
+        }
     }
 }

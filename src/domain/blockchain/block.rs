@@ -4,6 +4,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use super::MerkleTree;
 
+const COIN: i64 = 100000000;
+
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct Block {
     pub timestamp: u64,
@@ -41,5 +43,15 @@ impl Block {
             .collect();
         let merkle_tree = MerkleTree::new(tx_hashes.to_vec());
         return merkle_tree.root.unwrap().data;
+    }
+    pub fn get_block_value(nHeight: i64, nFees: i64) -> i64 {
+        let mut n_subsidy = 50 * COIN;
+        let halvings = nHeight / 4;
+        if halvings >= 64 {
+            return nFees;
+        }
+        n_subsidy >>= halvings;
+
+        return n_subsidy + nFees;
     }
 }

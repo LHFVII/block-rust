@@ -229,10 +229,10 @@ impl Transaction {
         buf: &mut Vec<u8>,
     ) -> Result<Self, io::Error> {
         let mut size_buf = [0u8; 4];
-        stream.read_exact(&mut size_buf).await;
+        stream.try_read(&mut size_buf);
         let expected_size = u32::from_le_bytes(size_buf) as usize;
         buf.resize(expected_size, 0);
-        stream.read_exact(buf).await;
+        stream.try_read(buf);
         match deserialize(&buf[..]) {
             Ok(transaction) => Ok(transaction),
             Err(e) => Err(io::Error::new(

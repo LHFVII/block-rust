@@ -11,7 +11,7 @@ use tokio::sync::mpsc;
 pub enum NodeMessage {
     Stop,
     Restart,
-    TxReceived,
+    TxReceived { tx: Transaction },
 }
 
 pub struct Server {
@@ -47,12 +47,10 @@ impl Server {
         }
         let (tx, rx) = mpsc::channel(10);
         let listener = TcpListener::bind("127.0.0.1:8000").await?;
-        let mem_pool = Arc::new(Mutex::new(Vec::new()));
         tokio::spawn(async move { start_mining_thread(rx) });
         loop {
             println!("listening...");
             let (mut socket, _) = listener.accept().await?;
-            let mem = Arc::clone(&mem_pool);
             let tx = tx.clone();
             tokio::spawn(async move {
                 let mut command_buf: [u8; 1024] = [0; 1024];
@@ -65,7 +63,7 @@ impl Server {
                                 let mut buffer = Vec::new();
                                 match Transaction::from_tcp_stream(&mut socket, &mut buffer).await {
                                     Ok(transaction) => {
-                                        mem.lock().unwrap().push(transaction);
+                                        tx.send(NodeMessage::TxReceived { tx: transaction }).await;
                                     }
                                     Err(e) => {
                                         eprintln!("Failed to read transaction: {}", e);
@@ -110,7 +108,8 @@ impl Server {
 }
 
 pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
-    let mut is_mining = true;
+    let mut mem_pool: Vec<Transaction> = Vec::new();
+    let mut is_mining = false;
     let mut counter = 0;
     loop {
         match rx.try_recv() {
@@ -121,15 +120,21 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
                 NodeMessage::Restart => {
                     is_mining = true;
                 }
-                NodeMessage::TxReceived => {
-                    println!("Resuming mining...");
-                    is_mining = true;
+                NodeMessage::TxReceived { tx } => {
+                    println!("Tx received...");
+                    mem_pool.push(tx);
+                    if mem_pool.len() > 3 {
+                        is_mining = true;
+                    } else {
+                        is_mining = false;
+                    }
                 }
             },
             Err(mpsc::error::TryRecvError::Empty) => {
                 if is_mining {
                     thread::sleep(Duration::from_millis(5000));
                     println!("{:?} ⛏️Mining...", counter);
+                    is_mining = false;
                     counter += 1;
                 }
             }

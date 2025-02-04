@@ -8,7 +8,7 @@ use std::time::Duration;
 use tokio::net::TcpListener;
 use tokio::sync::mpsc;
 
-enum NodeMessage {
+pub enum NodeMessage {
     Stop,
     Restart,
     TxReceived,

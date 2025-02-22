@@ -1,8 +1,6 @@
+use crate::domain::Block;
 use crate::domain::Blockchain;
 use crate::domain::Transaction;
-use std::collections::HashMap;
-use std::sync::Arc;
-use std::sync::Mutex;
 use std::thread;
 use std::time::Duration;
 use tokio::net::TcpListener;
@@ -60,6 +58,7 @@ impl Server {
                         println!("Received command: {}", command);
                         match command {
                             1 => {
+                                println!("Transaction received");
                                 let mut buffer = Vec::new();
                                 match Transaction::from_tcp_stream(&mut socket, &mut buffer).await {
                                     Ok(transaction) => {
@@ -84,30 +83,9 @@ impl Server {
             });
         }
     }
-
-    pub fn request_blocks(&mut self, bc: &mut Blockchain) {
-        println!("Requesting blocks");
-    }
-
-    pub fn handle_get_blocks(&mut self, bc: &mut Blockchain) {
-        println!("handling get blocks...");
-        let blocks = bc.get_block_hashes();
-        println!("Blocks are: {:?}", blocks);
-        //self.handle_inv_block(address, blocks);
-    }
-
-    pub fn handle_inv_block(&mut self, address: &str, blocks: Vec<String>) {
-        let block_hash = blocks[0].clone().into_bytes();
-        let mut new_in_transit: Vec<Vec<u8>> = vec![vec![]];
-        for block in blocks {
-            if block.into_bytes() < block_hash.clone() {
-                new_in_transit.push(block_hash.clone());
-            }
-        }
-    }
 }
 
-pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
+pub async fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
     let mut mem_pool: Vec<Transaction> = Vec::new();
     let mut is_mining = false;
     let mut counter = 0;
@@ -121,7 +99,6 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
                     is_mining = true;
                 }
                 NodeMessage::TxReceived { tx } => {
-                    println!("Tx received...");
                     mem_pool.push(tx);
                     if mem_pool.len() > 3 {
                         is_mining = true;
@@ -133,6 +110,12 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
             Err(mpsc::error::TryRecvError::Empty) => {
                 if is_mining {
                     thread::sleep(Duration::from_millis(5000));
+                    let generation_tx = create_generation_transaction("").await;
+                    mem_pool.push(generation_tx);
+                    let candidate_txs = mem_pool.clone();
+                    mem_pool = vec![];
+
+                    //Blockchain::mine_block(candidate_txs);
                     println!("{:?} ⛏️Mining...", counter);
                     is_mining = false;
                     counter += 1;
@@ -145,17 +128,11 @@ pub fn start_mining_thread(mut rx: mpsc::Receiver<NodeMessage>) {
         }
     }
 }
-pub fn print_blockchain() {
-    println!("Printing blockchain")
-}
-pub async fn add_known_node(address: String) {
-    println!("adding to known nodes");
-}
-pub async fn stop_mining() {}
 
-pub async fn create_generation_transaction(node_address: String) {
+pub async fn create_generation_transaction(node_address: &str) -> Transaction {
     let reward = 20;
     let coinbase_data = String::from("placeholder");
     let generation_transaction: Transaction =
-        Transaction::new_generation_tx(node_address, reward, coinbase_data);
+        Transaction::new_generation_tx(node_address.to_string(), reward, coinbase_data);
+    return generation_transaction;
 }
